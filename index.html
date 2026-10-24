@@ -1,0 +1,1296 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Avoin sää</title>
+<meta name="description" content="Mainokseton sääennuste, säähavainnot ja tiesää avoimesta datasta.">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#152029" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Avoin sää">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: sticky hakupalkki, nykytila-kortti, vaakavieritteinen tuntiennuste käyrineen, 10 päivän lista joka avautuu 3 h välein */
+:root{
+  --bg:#e2e8ee; --surface:#ffffff; --ink:#111c26; --muted:#5a6773; --line:#dfe5ea; --hover:#eef2f6; --today:#f2f7fc; --now-tint:rgba(27,90,136,.08);
+  --shadow:0 1px 2px rgba(17,28,38,.06),0 6px 18px rgba(17,28,38,.07);
+  --accent:#1b5a88; --accent-ink:#ffffff;
+  --warm:#c2352a; --cold:#1d62c4;
+  --ok:#1d6b3a; --ok-bg:#dcefe2; --warn:#8a5a00; --warn-bg:#f8ead0; --crit:#a3231a; --crit-bg:#fbe0dc;
+  --cloud:#c7d0d8; --cloud-dark:#8794a0; --sun:#efa616; --moon:#c9cfe0; --rain:#2b7bd0; --snow:#8bb2dc;
+  --font-ui:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-num:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#081016; --surface:#152029; --ink:#eef3f7; --muted:#8fa0ad; --line:#24313c; --hover:#1c2a36; --today:#1a2833; --now-tint:rgba(108,176,228,.12);
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.3);
+  --accent:#6cb0e4; --accent-ink:#08131c;
+  --warm:#ff7b6c; --cold:#72a9ff;
+  --ok:#7fd39a; --ok-bg:#163223; --warn:#f2c36b; --warn-bg:#3a2c10; --crit:#ff9a8c; --crit-bg:#3d1814;
+  --cloud:#8d9aa6; --cloud-dark:#5b6976; --sun:#f6bd3a; --moon:#d8dcec; --rain:#5ba6f0; --snow:#cfe2f6;
+  color-scheme:dark;
+}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--font-ui);-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:980px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+header{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
+header .wrap{display:flex;align-items:center;gap:16px;padding-block:12px;flex-wrap:wrap}
+.brand{font:700 22px/1 var(--font-num);letter-spacing:.01em;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.brand svg{width:28px;height:28px}
+.search{position:relative;flex:1 1 280px;display:flex;gap:8px}
+.search input{flex:1;min-width:0;height:42px;padding:0 14px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.search input::placeholder{color:var(--muted)}
+.btn{height:42px;padding:0 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{background:var(--hover)}
+.btn svg{width:18px;height:18px}
+.results{position:absolute;top:48px;left:0;right:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.15);overflow:hidden;z-index:30}
+.results button{display:block;width:100%;text-align:left;padding:10px 14px;border:0;background:none;cursor:pointer}
+.results button:hover,.results button.active{background:var(--hover)}
+.results small{color:var(--muted)}
+.results .empty{padding:12px 14px;color:var(--muted)}
+
+.recent{display:flex;gap:8px;flex-wrap:wrap;padding-block:12px 0}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:13px;cursor:pointer}
+.chip:hover{background:var(--hover)}
+.chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+
+main{padding-block:16px 40px;display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+main>*{min-width:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.panel h2{font:600 13px/1 var(--font-ui);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0;padding:16px 18px 0}
+
+.now{display:grid;grid-template-columns:auto 1fr;gap:8px 24px;padding:20px 18px;align-items:center}
+.now-place{grid-column:1/-1}
+.now-place h1{font:700 30px/1.1 var(--font-num);margin:0;text-wrap:balance}
+.now-place p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.now-main{display:flex;align-items:center;gap:6px}
+.now-main svg{width:96px;height:96px}
+.now-temp{font:600 76px/1 var(--font-num);letter-spacing:-.02em}
+.now-desc{font-weight:600;font-size:17px}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px 18px;margin-top:10px}
+.fact>span{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.fact b{font:600 18px/1.2 var(--font-num)}
+@media (max-width:560px){.now{grid-template-columns:1fr}.now-temp{font-size:64px}.now-main svg{width:80px;height:80px}}
+
+.pos{color:var(--warm)} .neg{color:var(--cold)}
+.num{font-family:var(--font-num);font-variant-numeric:tabular-nums}
+
+/* tuntiennuste */
+.hours{overflow-x:auto;padding:12px 0 14px;scrollbar-width:thin}
+.hgrid{display:grid;grid-auto-flow:column;padding:0 10px;width:max-content}
+.hcol{display:flex;flex-direction:column;align-items:center;width:54px;text-align:center}
+.hcol.newday{border-left:1px dashed var(--line)}
+.hday{height:18px;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap;align-self:flex-start;padding-left:4px}
+.htime{font:500 14px/1 var(--font-num);color:var(--muted);padding:4px 0}
+.hcol svg.ic{width:38px;height:38px}
+.htemp{font:600 18px/1 var(--font-num);padding-top:2px}
+.curve{display:block;height:64px;margin:2px 0}
+.hprec{height:34px;width:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
+.hprec i{display:block;width:22px;background:var(--rain);border-radius:3px 3px 0 0;opacity:.85}
+.hmm{font:500 12px/1.4 var(--font-num);color:var(--rain);min-height:17px}
+.hpop{font:500 11px/1.2 var(--font-num);color:var(--muted);min-height:14px}
+.hwind{display:flex;flex-direction:column;align-items:center;font:500 13px/1.2 var(--font-num);padding-top:6px}
+.hwind svg{width:18px;height:18px;color:var(--ink)}
+.hwind small{color:var(--muted);font-size:11px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;padding:0 18px 14px;font-size:12px;color:var(--muted)}
+
+/* päivät */
+.days{list-style:none;margin:8px 0 0;padding:0}
+.day{border-top:1px solid var(--line)}
+.day>button{width:100%;display:grid;grid-template-columns:112px 48px minmax(84px,auto) 1fr 1fr 22px;align-items:center;gap:10px;padding:8px 18px;border:0;background:none;text-align:left;cursor:pointer}
+.day>button:hover{background:var(--hover)}
+.dname b{display:block;font-weight:600}
+.dname small{color:var(--muted)}
+.day svg.ic{width:44px;height:44px}
+.dtemp{font:600 20px/1 var(--font-num)}
+.dtemp .lo{font-size:16px;opacity:.75;margin-left:6px}
+.dprec{font:500 15px/1.2 var(--font-num);color:var(--rain)}
+.dprec small{color:var(--muted);display:block;font-size:12px}
+.dwind{display:flex;align-items:center;gap:6px;font:500 15px/1 var(--font-num)}
+.dwind svg{width:18px;height:18px}
+.chev{width:18px;height:18px;transition:transform .2s;color:var(--muted)}
+.day.open .chev{transform:rotate(180deg)}
+.detail{padding:4px 18px 16px;overflow-x:auto}
+.detail table{border-collapse:collapse;width:100%;min-width:520px}
+.detail th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+.detail td{padding:4px 8px;border-bottom:1px solid var(--line);font-family:var(--font-num);font-variant-numeric:tabular-nums;font-size:15px}
+.detail td svg.ic{width:32px;height:32px;vertical-align:middle}
+.detail td svg.arr{width:16px;height:16px;vertical-align:-3px;margin-right:4px}
+.detail .sunline{font-size:13px;color:var(--muted);padding:10px 0 4px;font-family:var(--font-ui)}
+@media (max-width:640px){
+  .day>button{grid-template-columns:76px 40px 1fr auto 18px;padding:8px 14px;gap:8px}
+  .dwind{display:none}
+  .day svg.ic{width:38px;height:38px}
+}
+
+.state{padding:28px 18px;text-align:center;color:var(--muted)}
+.state .btn{margin-top:10px}
+.skel{height:14px;border-radius:6px;background:var(--hover);margin:10px auto;max-width:60%}
+footer{font-size:12px;color:var(--muted);padding-block:0 32px}
+footer a{color:var(--accent)}
+/* aurinko */
+.sun{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:10px 28px;border-top:1px solid var(--line);padding-top:16px;margin-top:6px}
+.sun-viz{position:relative;flex:0 1 300px;min-width:0;max-width:100%}
+.sun-arc{display:block;width:100%;height:auto}
+.sun-end{display:flex;flex-direction:column;line-height:1.15;margin-top:4px}
+.sun-ends{display:flex;justify-content:space-between}
+.sun-end span{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.sun-end b{font:600 20px/1.1 var(--font-num)}
+.sun-end.r{text-align:right;align-items:flex-end}
+.sun-info{flex:1 1 220px;min-width:0}
+.sun-status{font-weight:600;font-size:17px}
+.sun-meta{color:var(--muted);margin-top:2px}
+.sun-meta b{color:var(--ink);font:600 16px var(--font-num)}
+.dname .dsun{display:flex;align-items:center;gap:3px;font-size:12px;white-space:nowrap}
+.dname .dsun svg{width:13px;height:13px;flex:none}
+/* havainnot */
+.obs{padding:16px 18px 18px;display:grid;gap:12px}
+.obs-head{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;justify-content:space-between}
+.obs-head h2{padding:0}
+.obs-st{font-weight:600;font-size:16px}
+.obs-st small{color:var(--muted);font-weight:400;font-size:13px;margin-left:4px}
+.obs-body{display:grid;grid-template-columns:minmax(0,170px) 1fr;gap:8px 28px;align-items:start}
+.obs-body .facts{margin-top:0}
+.obs-temp{font:600 56px/1 var(--font-num);letter-spacing:-.02em}
+.obs-trend{font-size:13px;color:var(--muted);margin-top:6px}
+.obs-note{margin:0;color:var(--muted)}
+.fact b small{font-weight:400;color:var(--muted)}
+.pill{font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.pill.ok{background:var(--ok-bg);color:var(--ok)}
+.pill.stale{background:var(--warn-bg);color:var(--warn)}
+.spark svg{display:block;width:100%;height:84px}
+.spark-cap,.spark-axis{display:flex;justify-content:space-between;gap:12px;font-size:12px;color:var(--muted)}
+.spark-cap{padding-bottom:4px;flex-wrap:wrap}
+.spark-axis{font-family:var(--font-num);font-variant-numeric:tabular-nums;padding-top:2px}
+@media (max-width:560px){.obs-body{grid-template-columns:1fr}.pill{white-space:normal}}
+/* kielivalinta */
+.lang{display:inline-flex;height:42px;border:1px solid var(--line);border-radius:10px;overflow:hidden;flex:none}
+.lang button{border:0;border-left:1px solid var(--line);background:var(--surface);color:var(--muted);padding:0 11px;font-weight:600;font-size:13px;letter-spacing:.04em;cursor:pointer}
+.lang button:first-child{border-left:0}
+.lang button:hover{background:var(--hover);color:var(--ink)}
+.lang button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+@media (max-width:400px){header .wrap{gap:10px}.brand{font-size:20px;gap:6px}.brand svg{width:24px;height:24px}.lang button{padding:0 8px;font-size:12px}}
+@media (max-width:640px){.search{order:3;flex-basis:100%;min-width:0}.lang{margin-left:auto}#locate .lbl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}#locate{padding:0 11px}}
+/* ---- hierarkia ja kontrasti ---- */
+.panel{border-color:transparent;box-shadow:var(--shadow)}
+.panel h2{font:700 20px/1.2 var(--font-num);text-transform:none;letter-spacing:.005em;color:var(--ink)}
+.fact>span{font-size:11px;letter-spacing:.08em}
+.fact b{font-weight:700}
+
+/* nykytila: taivaan värinen pääosio */
+.now{--hero-a:#1d6fc2; --hero-b:#4fa3e6;
+  background:linear-gradient(150deg,var(--hero-a) 0%,var(--hero-b) 100%);
+  color:#fff; --ink:#fff; --muted:rgba(255,255,255,.8); --line:rgba(255,255,255,.3);
+  --warm:#fff; --cold:#d6e8ff; --cloud:#eef2f6; --cloud-dark:#b9c6d2; --moon:#f1f3fa;
+  padding:26px 24px 22px; box-shadow:0 2px 4px rgba(10,30,60,.12),0 14px 34px rgba(10,30,60,.18)}
+.now.sky-fair{--hero-a:#25619c;--hero-b:#5f93c4}
+.now.sky-cloudy{--hero-a:#3f5265;--hero-b:#6c7f92}
+.now.sky-rain{--hero-a:#2b3c4f;--hero-b:#55697e}
+.now.sky-snow{--hero-a:#45607d;--hero-b:#7891ab}
+.now.sky-night{--hero-a:#0b1730;--hero-b:#26395f}
+.now-place h1{font-size:36px}
+.now-place p{color:var(--muted)}
+.now-temp{font-size:104px;font-weight:700;text-shadow:0 2px 12px rgba(0,0,0,.12)}
+.now-main svg{width:112px;height:112px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.15))}
+.now-desc{font-size:20px;font-weight:700}
+.now .fact b{font-size:20px}
+.now .sun{border-top-color:var(--line)}
+.now .sun-status{font-size:18px}
+@media (max-width:560px){.now{padding:22px 18px 18px}.now-temp{font-size:84px}.now-main svg{width:88px;height:88px}.now-place h1{font-size:30px}}
+
+/* havainnot: toissijainen, rauhallisempi */
+.obs-temp{font-size:48px;font-weight:700}
+
+/* tunnit ja päivät */
+.hcol.nowcol{background:var(--now-tint)}
+.hgrid>.hcol.nowcol[style*="grid-row:1"]{border-radius:8px 8px 0 0}
+.hgrid>.hcol.nowcol[style*="grid-row:3"]{border-radius:0 0 8px 8px}
+.hcol.nowcol .hday{color:var(--accent)}
+.htemp{font-weight:700}
+.day:first-child>button{background:var(--today)}
+.day:first-child .dname b{color:var(--accent)}
+.day>button:hover{background:var(--hover)}
+.dname b{font-weight:700}
+.dtemp{font-size:23px;font-weight:700}
+.dtemp .lo{font-size:17px;font-weight:600;opacity:.6}
+footer{padding-top:8px}
+/* virhetiedot */
+.diag{font-size:13px;color:var(--muted)}
+.diag summary{cursor:pointer;font-weight:600;color:var(--accent)}
+.diag p{margin:6px 0 0}
+.diag a{color:var(--accent);font-weight:600}
+.btn-s{height:34px;padding:0 12px;font-size:13px;font-weight:600}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.08);background:var(--accent)}
+/* asennus ja offline */
+.installbar{display:flex;align-items:center;gap:10px 12px;margin-top:12px;padding:10px 12px;background:var(--surface);border-radius:12px;box-shadow:var(--shadow)}
+.installbar img{border-radius:9px;flex:none}
+.installbar span{flex:1;min-width:0;font-weight:600}
+.installbar .x{border:0;background:none;color:var(--muted);font-size:22px;line-height:1;width:34px;height:34px;border-radius:8px;cursor:pointer;flex:none}
+.installbar .x:hover{background:var(--hover);color:var(--ink)}
+.offline{margin-top:12px;padding:10px 14px;border-radius:12px;background:var(--warn-bg);color:var(--warn);font-weight:600}
+.diag code{display:block;margin-top:6px;padding:8px 10px;background:var(--hover);border-radius:8px;font:12px/1.45 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-all;color:var(--ink)}
+/* tiesää */
+.src{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.04em}
+.rw-list{display:grid}
+.rw{display:grid;gap:8px;padding:12px 0;border-top:1px solid var(--line)}
+.rw:first-child{border-top:0;padding-top:2px}
+.rw-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px}
+.rw-head b{font-weight:700;font-size:16px}
+.rw-head small{color:var(--muted);font-size:13px}
+.rw-main{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 28px}
+.rw-big>span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.rw-big b{font:700 30px/1.05 var(--font-num)}
+.rw-chips{display:flex;flex-wrap:wrap;gap:6px;padding-bottom:3px}
+.chip-s{font-size:13px;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--hover);color:var(--ink)}
+.chip-s.ok{background:var(--ok-bg);color:var(--ok)}
+.chip-s.warn{background:var(--warn-bg);color:var(--warn)}
+.chip-s.crit{background:var(--crit-bg);color:var(--crit)}
+.rw-facts{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:14px;color:var(--muted)}
+.rw-facts b{color:var(--ink);font:600 15px var(--font-num)}
+.cam{margin:4px 0 0;display:grid;gap:8px;min-width:0}
+.cam img{display:block;width:100%;max-width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:10px;background:var(--hover)}
+.cam figcaption{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-size:13px;color:var(--muted)}
+.cam figcaption b{color:var(--ink)}
+.cam-tabs{display:flex;gap:6px;margin-left:auto}
+.cam-tabs button{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:3px 10px;font-size:12px;font-weight:600;cursor:pointer}
+.cam-tabs button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="brand" aria-label="Avoin sää">
+      <svg viewBox="0 0 48 48" aria-hidden="true"></svg>Avoin sää
+    </div>
+    <form class="search" id="searchForm" role="search" autocomplete="off">
+      <input id="q" type="search" placeholder="Hae paikkakunta, esim. Oulu tai Kilpisjärvi" aria-label="Hae paikkakuntaa" aria-autocomplete="list" aria-controls="results">
+      <button class="btn" type="button" id="locate" title="Käytä omaa sijaintia">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg><span class="lbl">Sijainti</span>
+      </button>
+      <div class="results" id="results" hidden></div>
+    </form>
+    <div class="lang" id="langSel" role="group" aria-label="Kieli">
+      <button type="button" data-lang="fi" aria-pressed="true" lang="fi" title="Suomi">FI</button>
+      <button type="button" data-lang="sv" aria-pressed="false" lang="sv" title="Svenska">SV</button>
+      <button type="button" data-lang="en" aria-pressed="false" lang="en" title="English">EN</button>
+      <button type="button" data-lang="nl" aria-pressed="false" lang="nl" title="Nederlands">NL</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="offline" id="offline" role="status" hidden></div>
+  <div class="installbar" id="installBar" hidden>
+    <img src="icons/icon-192.png" alt="" width="36" height="36">
+    <span id="installTxt">Asenna Avoin sää puhelimen aloitusnäytölle.</span>
+    <button type="button" class="btn btn-s primary" id="installBtn">Asenna</button>
+    <button type="button" class="x" id="installX" aria-label="Sulje">×</button>
+  </div>
+  <div class="recent" id="recent"></div>
+  <main id="main">
+    <section class="panel state"><div class="skel"></div><div class="skel"></div>Haetaan ennustetta…</section>
+  </main>
+  <footer>
+    Ennustedata: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0), havainnot <a href="https://www.ilmatieteenlaitos.fi/avoin-data" target="_blank" rel="noopener">Ilmatieteen laitos</a> (CC BY 4.0), tiesää ja kelikamerat <a href="https://www.digitraffic.fi/" target="_blank" rel="noopener">Fintraffic / Digitraffic</a> (CC BY 4.0), paikkahaku Open-Meteo Geocoding / GeoNames. Ei mainoksia, ei seurantaa. Viimeksi katsotut paikat tallentuvat vain tähän selaimeen.
+  </footer>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* siirrä vanhat Hypersää-asetukset uusille avaimille */
+try { ['places','lang','installDismissed'].forEach(k => { const o = localStorage.getItem('hypersaa.' + k); if (o !== null && localStorage.getItem('avoinsaa.' + k) === null) localStorage.setItem('avoinsaa.' + k, o); }); } catch {}
+
+/* ---------- Kielet ---------- */
+const I18N = {
+fi: {
+  installTxt:'Asenna Avoin sää puhelimen aloitusnäytölle.',
+  install:'Asenna',
+  dismiss:'Sulje',
+  offline:'Ei verkkoyhteyttä. Näytetään viimeksi haetut tiedot, jos ne ovat tallessa.',
+  diag_timeout:'Palvelin ei vastannut 20 sekunnissa.',
+  diag_empty:'Palvelin vastasi, mutta vastauksesta ei löytynyt havaintoja. Alla näkyy, mitä kukin haku palautti.',
+  diag_js:'Sivun ohjelmassa tapahtui virhe havaintoja näytettäessä.',
+  openQuery:'Avaa kysely selaimessa',
+  noStationOrEmpty:'Havaintoja ei löytynyt. Lähistöllä ei ehkä ole havaintoasemaa, tai palvelimen vastaus oli tyhjä.',
+  tech:'Tekninen tieto',
+  diag_network:'Selain ei saanut yhteyttä palvelimeen. Syynä voi olla puuttuva verkkoyhteys, mainosten tai seurannan esto, tai selaimen tietoturvarajoitus (CORS), joka koskee usein tiedostona avattuja sivuja.',
+  diag_http:'Palvelin vastasi virheellä.',
+  diag_parse:'Palvelimen vastausta ei voitu lukea.',
+  diag_x:'Tuntematon virhe.',
+  rwTitle:'Tiesää',
+  roadT:'Tienpinta',
+  airT:'Ilma',
+  rain:'Sade',
+  cam:'Kelikamera',
+  rwFail:'Tiesäätietoja ei saatu haettua Fintrafficilta.',
+  rwNone:'Lähistöltä ei löytynyt tiesääasemaa.',
+  rwOnlyFi:'Tiesäätiedot ovat saatavilla vain Suomen teiltä.',
+  camAlt: n => `Kelikameran kuva: ${n}`,
+  camDir: n => `Kuvakulma ${n}`,
+  locale:'fi-FI', geo:'fi',
+  placeholder:'Hae paikkakunta, esim. Oulu tai Kilpisjärvi', searchLabel:'Hae paikkakuntaa',
+  locateTitle:'Käytä omaa sijaintia', locate:'Sijainti', langLabel:'Kieli',
+  loading:'Haetaan ennustetta…', loadingFor: n => `Haetaan ennustetta: ${n}…`,
+  footer:'Ennustedata: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0), havainnot <a href="https://www.ilmatieteenlaitos.fi/avoin-data" target="_blank" rel="noopener">Ilmatieteen laitos</a> (CC BY 4.0), tiesää ja kelikamerat <a href="https://www.digitraffic.fi/" target="_blank" rel="noopener">Fintraffic / Digitraffic</a> (CC BY 4.0), paikkahaku Open-Meteo Geocoding / GeoNames. Ei mainoksia, ei seurantaa. Viimeksi katsotut paikat ja kielivalinta tallentuvat vain tähän selaimeen.',
+  desc:{0:'Selkeää',1:'Enimmäkseen selkeää',2:'Puolipilvistä',3:'Pilvistä',45:'Sumua',48:'Huurtavaa sumua',
+   51:'Heikkoa tihkua',53:'Tihkusadetta',55:'Runsasta tihkua',56:'Jäätävää tihkua',57:'Jäätävää tihkua',
+   61:'Heikkoa sadetta',63:'Sadetta',65:'Runsasta sadetta',66:'Jäätävää sadetta',67:'Runsasta jäätävää sadetta',
+   71:'Heikkoa lumisadetta',73:'Lumisadetta',75:'Runsasta lumisadetta',77:'Lumijyväsiä',
+   80:'Heikkoja sadekuuroja',81:'Sadekuuroja',82:'Voimakkaita sadekuuroja',85:'Lumikuuroja',86:'Voimakkaita lumikuuroja',
+   95:'Ukkosta',96:'Ukkosta ja raekuuroja',99:'Voimakasta ukkosta ja rakeita'},
+  from:['pohjoisesta','koillisesta','idästä','kaakosta','etelästä','lounaasta','lännestä','luoteesta'],
+  windAria:'Tuuli',
+  searchFail:'Paikkahaku ei vastannut. Yritä hetken päästä uudelleen.', noHits:'Paikkaa ei löytynyt. Tarkista kirjoitusasu.',
+  myLoc:'Oma sijainti', noGeo:'Selaimesi ei tue paikannusta.', geoDenied:'Sijaintia ei saatu. Salli paikannus selaimen asetuksista tai hae paikkakunta nimellä.',
+  fcFail:'Ennustetta ei saatu haettua. Tarkista verkkoyhteys ja yritä uudelleen.', retry:'Yritä uudelleen',
+  finland:'Suomi',
+  obsTitle:'Viimeisimmät havainnot',
+  obsFail:'Havaintoja ei saatu haettua Ilmatieteen laitokselta. Ennuste toimii normaalisti; havainnot päivittyvät, kun valitset paikan uudelleen.',
+  noStation:'Lähistöltä ei löytynyt Ilmatieteen laitoksen sääasemaa.', onlyFi:'Mittaushavainnot ovat saatavilla vain Suomen sääasemilta.',
+  station:'Sääasema', fresh:'Ajantasainen', stale:'Viivästynyt', at: t => `klo ${t}`,
+  justNow:'juuri nyt', minAgo: m => `${m} min sitten`, hAgo: (h,m) => `${h} h ${m} min sitten`, dayAgo:'yli vuorokausi sitten',
+  trendSame:'Ennallaan viime tunnin aikana', trendUp: x => `Noussut ${x}° tunnissa`, trendDown: x => `Laskenut ${x}° tunnissa`,
+  wind:'Tuuli', gusts:'Puuskat', humidity:'Kosteus', dew:'Kastepiste', rain12:'Sade 1 h / 12 h', rainRate:'Sateen rankkuus',
+  snow:'Lumensyvyys', noSnow:'Ei lunta', pressure:'Ilmanpaine', vis:'Näkyvyys', clouds:'Pilvisyys',
+  cloud:['Selkeää','Enimmäkseen selkeää','Enimmäkseen selkeää','Puolipilvistä','Puolipilvistä','Puolipilvistä','Enimmäkseen pilvistä','Enimmäkseen pilvistä','Pilvistä','Taivas ei näy'],
+  spark:'Lämpötila viimeiset 12 h', minmax: (a,b) => `alin ${a} · ylin ${b}`, sparkAria:'Lämpötilan kehitys 12 tunnin ajalta',
+  dist: k => k ? `${k} km valitusta paikasta` : 'alle 1 km valitusta paikasta', noTemp:'Asema ei mittaa lämpötilaa.',
+  polarNight:'Kaamos: aurinko ei nouse tänään', midnightSun:'Yötön yö: aurinko ei laske tänään',
+  risesIn: d => `Aurinko nousee ${d} päästä`, daylightLeft: d => `Päivänvaloa jäljellä ${d}`,
+  setAgo: d => `Aurinko laski ${d} sitten`, riseTomorrow: t => `, nousee huomenna klo ${t}`,
+  same:'Huomenna yhtä pitkä', longer: n => `Huomenna ${n} min pidempi`, shorter: n => `Huomenna ${n} min lyhyempi`,
+  rises:'Nousee', sets:'Laskee', dayLen:'Päivän pituus', polarShort:'Kaamos', midnightShort:'Yötön yö', sunTitle:'Auringonnousu ja -lasku',
+  updated: t => `päivitetty klo ${t} paikallista aikaa`, feels:'Tuntuu kuin',
+  now:'Nyt', h48:'Seuraavat 48 tuntia', legRain:'Sade mm/h ja todennäköisyys', legWind:'Tuuli m/s (puuskat), nuoli näyttää tuulen suunnan',
+  today:'Tänään', tomorrow:'Huomenna', rainPct: p => `sade ${p} %`, d10:'10 päivän ennuste',
+  thTime:'Klo', thTemp:'Lämpötila', thFeels:'Tuntuu', thRain:'Sade', thWind:'Tuuli m/s', thHum:'Kosteus',
+  sunline: (r,s,l) => `Aurinko nousee ${r}, laskee ${s} · päivän pituus ${l}`, uv: v => ` · UV-indeksi enintään ${v}`
+},
+sv: {
+  installTxt:'Installera Avoin sää på telefonens hemskärm.',
+  install:'Installera',
+  dismiss:'Stäng',
+  offline:'Ingen nätanslutning. Senast hämtade uppgifter visas om de finns sparade.',
+  diag_timeout:'Servern svarade inte inom 20 sekunder.',
+  diag_empty:'Servern svarade, men svaret innehöll inga observationer. Nedan syns vad varje sökning returnerade.',
+  diag_js:'Ett fel inträffade i sidans program när observationerna visades.',
+  openQuery:'Öppna sökningen i webbläsaren',
+  noStationOrEmpty:'Inga observationer hittades. Det finns kanske ingen station i närheten, eller så var serverns svar tomt.',
+  tech:'Teknisk information',
+  diag_network:'Webbläsaren fick ingen kontakt med servern. Orsaken kan vara att nätanslutning saknas, en annons- eller spårningsblockerare, eller en säkerhetsbegränsning i webbläsaren (CORS), som ofta gäller sidor som öppnats som fil.',
+  diag_http:'Servern svarade med ett fel.',
+  diag_parse:'Serverns svar kunde inte läsas.',
+  diag_x:'Okänt fel.',
+  rwTitle:'Vägväder',
+  roadT:'Vägyta',
+  airT:'Luft',
+  rain:'Nederbörd',
+  cam:'Vägkamera',
+  rwFail:'Vägväderdata kunde inte hämtas från Fintraffic.',
+  rwNone:'Ingen vägväderstation hittades i närheten.',
+  rwOnlyFi:'Vägväder finns bara för vägar i Finland.',
+  camAlt: n => `Bild från vägkamera: ${n}`,
+  camDir: n => `Vy ${n}`,
+  locale:'sv-FI', geo:'sv',
+  placeholder:'Sök ort, t.ex. Vasa eller Kilpisjärvi', searchLabel:'Sök ort',
+  locateTitle:'Använd min position', locate:'Position', langLabel:'Språk',
+  loading:'Hämtar prognos…', loadingFor: n => `Hämtar prognos: ${n}…`,
+  footer:'Prognosdata: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0), observationer <a href="https://sv.ilmatieteenlaitos.fi/" target="_blank" rel="noopener">Meteorologiska institutet</a> (CC BY 4.0), vägväder och vägkameror <a href="https://www.digitraffic.fi/en/" target="_blank" rel="noopener">Fintraffic / Digitraffic</a> (CC BY 4.0), ortsökning Open-Meteo Geocoding / GeoNames. Inga annonser, ingen spårning. Senast visade orter och språkval sparas bara i den här webbläsaren.',
+  desc:{0:'Klart',1:'Mestadels klart',2:'Halvmulet',3:'Mulet',45:'Dimma',48:'Underkyld dimma',
+   51:'Lätt duggregn',53:'Duggregn',55:'Kraftigt duggregn',56:'Underkylt duggregn',57:'Underkylt duggregn',
+   61:'Lätt regn',63:'Regn',65:'Kraftigt regn',66:'Underkylt regn',67:'Kraftigt underkylt regn',
+   71:'Lätt snöfall',73:'Snöfall',75:'Kraftigt snöfall',77:'Snökorn',
+   80:'Lätta regnskurar',81:'Regnskurar',82:'Kraftiga regnskurar',85:'Snöbyar',86:'Kraftiga snöbyar',
+   95:'Åska',96:'Åska med hagel',99:'Kraftig åska med hagel'},
+  from:['från norr','från nordost','från öster','från sydost','från söder','från sydväst','från väster','från nordväst'],
+  windAria:'Vind',
+  searchFail:'Ortsökningen svarade inte. Försök igen om en stund.', noHits:'Ingen ort hittades. Kontrollera stavningen.',
+  myLoc:'Min position', noGeo:'Din webbläsare stöder inte positionering.', geoDenied:'Positionen kunde inte hämtas. Tillåt positionering i webbläsarens inställningar eller sök orten med namn.',
+  fcFail:'Prognosen kunde inte hämtas. Kontrollera nätanslutningen och försök igen.', retry:'Försök igen',
+  finland:'Finland',
+  obsTitle:'Senaste observationer',
+  obsFail:'Observationerna kunde inte hämtas från Meteorologiska institutet. Prognosen fungerar som vanligt; observationerna uppdateras när du väljer orten på nytt.',
+  noStation:'Ingen väderstation från Meteorologiska institutet hittades i närheten.', onlyFi:'Observationer finns bara från väderstationer i Finland.',
+  station:'Väderstation', fresh:'Aktuell', stale:'Försenad', at: t => `kl. ${t}`,
+  justNow:'just nu', minAgo: m => `för ${m} min sedan`, hAgo: (h,m) => `för ${h} h ${m} min sedan`, dayAgo:'för över ett dygn sedan',
+  trendSame:'Oförändrad senaste timmen', trendUp: x => `Stigit ${x}° på en timme`, trendDown: x => `Sjunkit ${x}° på en timme`,
+  wind:'Vind', gusts:'Byar', humidity:'Luftfuktighet', dew:'Daggpunkt', rain12:'Nederbörd 1 h / 12 h', rainRate:'Regnintensitet',
+  snow:'Snödjup', noSnow:'Ingen snö', pressure:'Lufttryck', vis:'Sikt', clouds:'Molnighet',
+  cloud:['Klart','Mestadels klart','Mestadels klart','Halvmulet','Halvmulet','Halvmulet','Mestadels mulet','Mestadels mulet','Mulet','Himlen syns inte'],
+  spark:'Temperatur senaste 12 h', minmax: (a,b) => `lägst ${a} · högst ${b}`, sparkAria:'Temperaturens utveckling under 12 timmar',
+  dist: k => k ? `${k} km från vald ort` : 'under 1 km från vald ort', noTemp:'Stationen mäter inte temperatur.',
+  polarNight:'Polarnatt: solen går inte upp i dag', midnightSun:'Midnattssol: solen går inte ner i dag',
+  risesIn: d => `Solen går upp om ${d}`, daylightLeft: d => `Dagsljus kvar ${d}`,
+  setAgo: d => `Solen gick ner för ${d} sedan`, riseTomorrow: t => `, går upp i morgon kl. ${t}`,
+  same:'I morgon lika lång', longer: n => `I morgon ${n} min längre`, shorter: n => `I morgon ${n} min kortare`,
+  rises:'Soluppgång', sets:'Solnedgång', dayLen:'Dagens längd', polarShort:'Polarnatt', midnightShort:'Midnattssol', sunTitle:'Soluppgång och solnedgång',
+  updated: t => `uppdaterad kl. ${t} lokal tid`, feels:'Känns som',
+  now:'Nu', h48:'Kommande 48 timmar', legRain:'Nederbörd mm/h och sannolikhet', legWind:'Vind m/s (byar), pilen visar vindens riktning',
+  today:'I dag', tomorrow:'I morgon', rainPct: p => `regn ${p} %`, d10:'Prognos för 10 dygn',
+  thTime:'Kl.', thTemp:'Temperatur', thFeels:'Känns som', thRain:'Nederbörd', thWind:'Vind m/s', thHum:'Fuktighet',
+  sunline: (r,s,l) => `Solen går upp ${r}, ner ${s} · dagens längd ${l}`, uv: v => ` · UV-index högst ${v}`
+},
+en: {
+  installTxt:'Install Avoin sää on your home screen.',
+  install:'Install',
+  dismiss:'Close',
+  offline:'No network connection. Showing the most recently loaded data if it is saved.',
+  diag_timeout:'The server did not respond within 20 seconds.',
+  diag_empty:'The server responded, but the response contained no observations. Below is what each query returned.',
+  diag_js:'The page script failed while showing the observations.',
+  openQuery:'Open the query in your browser',
+  noStationOrEmpty:'No observations found. There may be no station nearby, or the server response was empty.',
+  tech:'Technical details',
+  diag_network:'The browser could not reach the server. Possible causes: no network connection, an ad or tracking blocker, or a browser security restriction (CORS), which often applies to pages opened as a file.',
+  diag_http:'The server responded with an error.',
+  diag_parse:'The server response could not be read.',
+  diag_x:'Unknown error.',
+  rwTitle:'Road weather',
+  roadT:'Road surface',
+  airT:'Air',
+  rain:'Precipitation',
+  cam:'Road camera',
+  rwFail:'Could not load road weather data from Fintraffic.',
+  rwNone:'No road weather station found nearby.',
+  rwOnlyFi:'Road weather is available only for roads in Finland.',
+  camAlt: n => `Road camera image: ${n}`,
+  camDir: n => `View ${n}`,
+  locale:'en-GB', geo:'en',
+  placeholder:'Search a place, e.g. Oulu or Kilpisjärvi', searchLabel:'Search for a place',
+  locateTitle:'Use my location', locate:'Location', langLabel:'Language',
+  loading:'Loading forecast…', loadingFor: n => `Loading forecast: ${n}…`,
+  footer:'Forecast data: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0), observations <a href="https://en.ilmatieteenlaitos.fi/open-data" target="_blank" rel="noopener">Finnish Meteorological Institute</a> (CC BY 4.0), road weather and cameras <a href="https://www.digitraffic.fi/en/" target="_blank" rel="noopener">Fintraffic / Digitraffic</a> (CC BY 4.0), place search Open-Meteo Geocoding / GeoNames. No ads, no tracking. Recent places and your language choice are stored only in this browser.',
+  desc:{0:'Clear',1:'Mostly clear',2:'Partly cloudy',3:'Cloudy',45:'Fog',48:'Freezing fog',
+   51:'Light drizzle',53:'Drizzle',55:'Heavy drizzle',56:'Freezing drizzle',57:'Freezing drizzle',
+   61:'Light rain',63:'Rain',65:'Heavy rain',66:'Freezing rain',67:'Heavy freezing rain',
+   71:'Light snow',73:'Snow',75:'Heavy snow',77:'Snow grains',
+   80:'Light rain showers',81:'Rain showers',82:'Heavy rain showers',85:'Snow showers',86:'Heavy snow showers',
+   95:'Thunderstorm',96:'Thunderstorm with hail',99:'Severe thunderstorm with hail'},
+  from:['N','NE','E','SE','S','SW','W','NW'],
+  windAria:'Wind',
+  searchFail:'Place search did not respond. Try again in a moment.', noHits:'No place found. Check the spelling.',
+  myLoc:'My location', noGeo:'Your browser does not support location.', geoDenied:'Could not get your location. Allow location in your browser settings or search for the place by name.',
+  fcFail:'Could not load the forecast. Check your connection and try again.', retry:'Try again',
+  finland:'Finland',
+  obsTitle:'Latest observations',
+  obsFail:'Could not load observations from the Finnish Meteorological Institute. The forecast works as usual; observations refresh when you select the place again.',
+  noStation:'No Finnish Meteorological Institute weather station was found nearby.', onlyFi:'Observations are available only from weather stations in Finland.',
+  station:'Weather station', fresh:'Up to date', stale:'Delayed', at: t => t,
+  justNow:'just now', minAgo: m => `${m} min ago`, hAgo: (h,m) => `${h} h ${m} min ago`, dayAgo:'over a day ago',
+  trendSame:'Unchanged over the past hour', trendUp: x => `Up ${x}° in the past hour`, trendDown: x => `Down ${x}° in the past hour`,
+  wind:'Wind', gusts:'Gusts', humidity:'Humidity', dew:'Dew point', rain12:'Precip. 1 h / 12 h', rainRate:'Rain rate',
+  snow:'Snow depth', noSnow:'No snow', pressure:'Pressure', vis:'Visibility', clouds:'Cloud cover',
+  cloud:['Clear','Mostly clear','Mostly clear','Partly cloudy','Partly cloudy','Partly cloudy','Mostly cloudy','Mostly cloudy','Overcast','Sky obscured'],
+  spark:'Temperature, past 12 h', minmax: (a,b) => `low ${a} · high ${b}`, sparkAria:'Temperature over the past 12 hours',
+  dist: k => k ? `${k} km from the selected place` : 'under 1 km from the selected place', noTemp:'This station does not measure temperature.',
+  polarNight:'Polar night: the sun does not rise today', midnightSun:'Midnight sun: the sun does not set today',
+  risesIn: d => `Sunrise in ${d}`, daylightLeft: d => `Daylight left ${d}`,
+  setAgo: d => `Sun set ${d} ago`, riseTomorrow: t => `, rises tomorrow at ${t}`,
+  same:'Tomorrow the same length', longer: n => `Tomorrow ${n} min longer`, shorter: n => `Tomorrow ${n} min shorter`,
+  rises:'Sunrise', sets:'Sunset', dayLen:'Day length', polarShort:'Polar night', midnightShort:'Midnight sun', sunTitle:'Sunrise and sunset',
+  updated: t => `updated ${t} local time`, feels:'Feels like',
+  now:'Now', h48:'Next 48 hours', legRain:'Precipitation mm/h and probability', legWind:'Wind m/s (gusts), arrow shows wind direction',
+  today:'Today', tomorrow:'Tomorrow', rainPct: p => `rain ${p} %`, d10:'10-day forecast',
+  thTime:'Time', thTemp:'Temperature', thFeels:'Feels like', thRain:'Precip.', thWind:'Wind m/s', thHum:'Humidity',
+  sunline: (r,s,l) => `Sunrise ${r}, sunset ${s} · day length ${l}`, uv: v => ` · max UV index ${v}`
+},
+nl: {
+  installTxt:'Installeer Avoin sää op je startscherm.',
+  install:'Installeren',
+  dismiss:'Sluiten',
+  offline:'Geen netwerkverbinding. De laatst geladen gegevens worden getoond als ze bewaard zijn.',
+  diag_timeout:'De server reageerde niet binnen 20 seconden.',
+  diag_empty:'De server antwoordde, maar het antwoord bevatte geen waarnemingen. Hieronder staat wat elke zoekopdracht opleverde.',
+  diag_js:'Het script van de pagina liep vast bij het tonen van de waarnemingen.',
+  openQuery:'Open de zoekopdracht in je browser',
+  noStationOrEmpty:'Geen waarnemingen gevonden. Er is misschien geen station in de buurt, of het antwoord van de server was leeg.',
+  tech:'Technische details',
+  diag_network:'De browser kon de server niet bereiken. Mogelijke oorzaken: geen netwerkverbinding, een advertentie- of trackingblokker, of een beveiligingsbeperking van de browser (CORS), die vaak geldt voor pagina’s die als bestand zijn geopend.',
+  diag_http:'De server antwoordde met een fout.',
+  diag_parse:'Het antwoord van de server kon niet worden gelezen.',
+  diag_x:'Onbekende fout.',
+  rwTitle:'Wegweer',
+  roadT:'Wegdek',
+  airT:'Lucht',
+  rain:'Neerslag',
+  cam:'Wegcamera',
+  rwFail:'Wegweerdata van Fintraffic konden niet worden geladen.',
+  rwNone:'Geen wegweerstation in de buurt gevonden.',
+  rwOnlyFi:'Wegweer is alleen beschikbaar voor wegen in Finland.',
+  camAlt: n => `Beeld van wegcamera: ${n}`,
+  camDir: n => `Richting ${n}`,
+  locale:'nl-NL', geo:'nl',
+  placeholder:'Zoek een plaats, bijv. Oulu of Kilpisjärvi', searchLabel:'Zoek een plaats',
+  locateTitle:'Gebruik mijn locatie', locate:'Locatie', langLabel:'Taal',
+  loading:'Verwachting laden…', loadingFor: n => `Verwachting laden: ${n}…`,
+  footer:'Verwachtingsdata: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0), waarnemingen <a href="https://en.ilmatieteenlaitos.fi/open-data" target="_blank" rel="noopener">Fins Meteorologisch Instituut</a> (CC BY 4.0), wegweer en wegcamera’s <a href="https://www.digitraffic.fi/en/" target="_blank" rel="noopener">Fintraffic / Digitraffic</a> (CC BY 4.0), plaatszoeker Open-Meteo Geocoding / GeoNames. Geen advertenties, geen tracking. Recente plaatsen en je taalkeuze worden alleen in deze browser bewaard.',
+  desc:{0:'Helder',1:'Overwegend helder',2:'Half bewolkt',3:'Bewolkt',45:'Mist',48:'Aanvriezende mist',
+   51:'Lichte motregen',53:'Motregen',55:'Zware motregen',56:'Ijzel (motregen)',57:'Ijzel (motregen)',
+   61:'Lichte regen',63:'Regen',65:'Zware regen',66:'IJzel',67:'Zware ijzel',
+   71:'Lichte sneeuw',73:'Sneeuw',75:'Zware sneeuwval',77:'Korrelsneeuw',
+   80:'Lichte regenbuien',81:'Regenbuien',82:'Zware regenbuien',85:'Sneeuwbuien',86:'Zware sneeuwbuien',
+   95:'Onweer',96:'Onweer met hagel',99:'Zwaar onweer met hagel'},
+  from:['N','NO','O','ZO','Z','ZW','W','NW'],
+  windAria:'Wind',
+  searchFail:'De plaatszoeker reageert niet. Probeer het zo opnieuw.', noHits:'Geen plaats gevonden. Controleer de spelling.',
+  myLoc:'Mijn locatie', noGeo:'Je browser ondersteunt geen locatiebepaling.', geoDenied:'Je locatie kon niet worden bepaald. Sta locatie toe in je browserinstellingen of zoek de plaats op naam.',
+  fcFail:'De verwachting kon niet worden geladen. Controleer je verbinding en probeer het opnieuw.', retry:'Opnieuw proberen',
+  finland:'Finland',
+  obsTitle:'Laatste waarnemingen',
+  obsFail:'Waarnemingen van het Fins Meteorologisch Instituut konden niet worden geladen. De verwachting werkt gewoon; waarnemingen worden vernieuwd als je de plaats opnieuw kiest.',
+  noStation:'Geen weerstation van het Fins Meteorologisch Instituut in de buurt gevonden.', onlyFi:'Waarnemingen zijn alleen beschikbaar van weerstations in Finland.',
+  station:'Weerstation', fresh:'Actueel', stale:'Vertraagd', at: t => `om ${t}`,
+  justNow:'zojuist', minAgo: m => `${m} min geleden`, hAgo: (h,m) => `${h} u ${m} min geleden`, dayAgo:'meer dan een dag geleden',
+  trendSame:'Onveranderd in het afgelopen uur', trendUp: x => `${x}° gestegen in een uur`, trendDown: x => `${x}° gedaald in een uur`,
+  wind:'Wind', gusts:'Windstoten', humidity:'Luchtvochtigheid', dew:'Dauwpunt', rain12:'Neerslag 1 u / 12 u', rainRate:'Neerslagintensiteit',
+  snow:'Sneeuwdikte', noSnow:'Geen sneeuw', pressure:'Luchtdruk', vis:'Zicht', clouds:'Bewolking',
+  cloud:['Helder','Overwegend helder','Overwegend helder','Half bewolkt','Half bewolkt','Half bewolkt','Zwaar bewolkt','Zwaar bewolkt','Geheel bewolkt','Lucht niet zichtbaar'],
+  spark:'Temperatuur, afgelopen 12 u', minmax: (a,b) => `laagste ${a} · hoogste ${b}`, sparkAria:'Temperatuurverloop over de afgelopen 12 uur',
+  dist: k => k ? `${k} km van de gekozen plaats` : 'minder dan 1 km van de gekozen plaats', noTemp:'Dit station meet geen temperatuur.',
+  polarNight:'Poolnacht: de zon komt vandaag niet op', midnightSun:'Middernachtzon: de zon gaat vandaag niet onder',
+  risesIn: d => `Zonsopkomst over ${d}`, daylightLeft: d => `Nog ${d} daglicht`,
+  setAgo: d => `Zon ${d} geleden ondergegaan`, riseTomorrow: t => `, komt morgen op om ${t}`,
+  same:'Morgen even lang', longer: n => `Morgen ${n} min langer`, shorter: n => `Morgen ${n} min korter`,
+  rises:'Zonsopkomst', sets:'Zonsondergang', dayLen:'Daglengte', polarShort:'Poolnacht', midnightShort:'Middernachtzon', sunTitle:'Zonsopkomst en zonsondergang',
+  updated: t => `bijgewerkt om ${t} lokale tijd`, feels:'Voelt als',
+  now:'Nu', h48:'Komende 48 uur', legRain:'Neerslag mm/u en kans', legWind:'Wind m/s (windstoten), pijl toont de windrichting',
+  today:'Vandaag', tomorrow:'Morgen', rainPct: p => `neerslag ${p} %`, d10:'10-daagse verwachting',
+  thTime:'Tijd', thTemp:'Temperatuur', thFeels:'Voelt als', thRain:'Neerslag', thWind:'Wind m/s', thHum:'Vochtigheid',
+  sunline: (r,s,l) => `Zonsopkomst ${r}, zonsondergang ${s} · daglengte ${l}`, uv: v => ` · UV-index max. ${v}`
+}};
+const LANGS = ['fi','sv','en','nl'];
+let lang = (() => {
+  try { const s = localStorage.getItem('avoinsaa.lang'); if (LANGS.includes(s)) return s; } catch {}
+  const n = (navigator.language || 'fi').slice(0,2).toLowerCase();
+  return LANGS.includes(n) ? n : 'en';
+})();
+const T = (k, ...a) => { const v = I18N[lang][k] ?? I18N.fi[k]; return typeof v === 'function' ? v(...a) : v; };
+const dec = s => lang === 'en' ? String(s) : String(s).replace('.', ',');
+
+function applyStatic(){
+  document.documentElement.lang = lang;
+  q.placeholder = T('placeholder'); q.setAttribute('aria-label', T('searchLabel'));
+  $('#locate').title = T('locateTitle'); $('#locate .lbl').textContent = T('locate');
+  $('#langSel').setAttribute('aria-label', T('langLabel'));
+  document.querySelectorAll('#langSel button').forEach(b => b.setAttribute('aria-pressed', b.dataset.lang === lang));
+  $('footer').innerHTML = T('footer');
+  $('#installTxt').textContent = T('installTxt'); $('#installBtn').textContent = T('install');
+  $('#installX').setAttribute('aria-label', T('dismiss')); $('#offline').textContent = T('offline');
+}
+
+let maskN = 0;
+function sunG(x,y,r){
+  let rays='';
+  for(let i=0;i<8;i++){const a=i*Math.PI/4,c=Math.cos(a),s=Math.sin(a);
+    rays+=`<line x1="${(x+c*(r+3)).toFixed(1)}" y1="${(y+s*(r+3)).toFixed(1)}" x2="${(x+c*(r+6.5)).toFixed(1)}" y2="${(y+s*(r+6.5)).toFixed(1)}"/>`;}
+  return `<g stroke="var(--sun)" stroke-width="2.4" stroke-linecap="round">${rays}</g><circle cx="${x}" cy="${y}" r="${r}" fill="var(--sun)"/>`;
+}
+function moonG(x,y,r){
+  const id='mm'+(++maskN);
+  return `<mask id="${id}"><rect width="48" height="48" fill="#fff"/><circle cx="${x+r*.55}" cy="${y-r*.45}" r="${r*.9}" fill="#000"/></mask><circle cx="${x}" cy="${y}" r="${r}" fill="var(--moon)" mask="url(#${id})"/>`;
+}
+const orb = (day,x,y,r) => day ? sunG(x,y,r) : moonG(x,y,r+2);
+function cloudG(tx,ty,s,fill){
+  return `<g transform="translate(${tx} ${ty}) scale(${s})" fill="${fill}"><circle cx="17" cy="27" r="7"/><circle cx="26" cy="21" r="10"/><circle cx="34" cy="27" r="7"/><rect x="17" y="26" width="17" height="8"/></g>`;
+}
+const XS = {1:[24],2:[19,29],3:[15,24,33]};
+const drops = (n,short) => XS[n].map(x=>`<line x1="${x}" y1="34" x2="${x-2.5}" y2="${short?38:42}" stroke="var(--rain)" stroke-width="2.6" stroke-linecap="round"/>`).join('');
+const flakes = n => XS[n].map(x=>`<circle cx="${x-1}" cy="39" r="2.4" fill="var(--snow)"/>`).join('');
+const bolt = `<polygon points="25,30 19,40 24,40 21,47 31,36 26,36 29,30" fill="var(--sun)"/>`;
+
+function icon(code, day=1, cls='ic'){
+  code = +code; let g='';
+  const base = (shower,dark) => (shower ? orb(day,15,12,6) + cloudG(3,-3,.9,dark?'var(--cloud-dark)':'var(--cloud)')
+                                        : cloudG(0,-4,1,dark?'var(--cloud-dark)':'var(--cloud)'));
+  switch(true){
+    case code===0: g = day ? sunG(24,24,9) : moonG(24,24,11); break;
+    case code===1: g = orb(day,19,19,8) + cloudG(15,13,.68,'var(--cloud)'); break;
+    case code===2: g = orb(day,17,16,7) + cloudG(5,6,.85,'var(--cloud)'); break;
+    case code===3: g = cloudG(7,-5,.8,'var(--cloud-dark)') + cloudG(0,2,1,'var(--cloud)'); break;
+    case code===45||code===48: g = cloudG(0,-7,1,'var(--cloud)') + [32,37,42].map((y,i)=>`<line x1="${10+i*3}" y1="${y}" x2="${38-i*3}" y2="${y}" stroke="var(--cloud-dark)" stroke-width="2.6" stroke-linecap="round"/>`).join(''); break;
+    case code>=51&&code<=55: g = base(false,false) + drops(code===55?3:2,true); break;
+    case code===56||code===57: g = base(false,false) + drops(1,true) + `<circle cx="31" cy="39" r="2.4" fill="var(--snow)"/>`; break;
+    case code===61||code===63||code===65: g = base(false,code===65) + drops(code===61?2:3); break;
+    case code===66||code===67: g = base(false,code===67) + `<line x1="17" y1="34" x2="14.5" y2="42" stroke="var(--rain)" stroke-width="2.6" stroke-linecap="round"/><circle cx="25" cy="39" r="2.4" fill="var(--snow)"/><line x1="33" y1="34" x2="30.5" y2="42" stroke="var(--rain)" stroke-width="2.6" stroke-linecap="round"/>`; break;
+    case code>=71&&code<=77: g = base(false,code===75) + flakes(code===71||code===77?2:3); break;
+    case code>=80&&code<=82: g = base(true,code===82) + drops(code===80?2:3); break;
+    case code===85||code===86: g = base(true,code===86) + flakes(code===85?2:3); break;
+    case code>=95: g = base(false,true) + bolt + (code===95 ? `<line x1="14" y1="34" x2="11.5" y2="42" stroke="var(--rain)" stroke-width="2.6" stroke-linecap="round"/>` : `<circle cx="13" cy="39" r="2.4" fill="var(--snow)"/><circle cx="36" cy="40" r="2.4" fill="var(--snow)"/>`); break;
+    default: g = cloudG(0,2,1,'var(--cloud)');
+  }
+  return `<svg class="${cls}" viewBox="0 0 48 48" role="img" aria-label="${esc(T('desc')[code]||'')}">${g}</svg>`;
+}
+document.querySelector('.brand svg').innerHTML = orb(1,17,16,7) + cloudG(5,6,.85,'var(--cloud)');
+
+/* ---------- Muotoilut ---------- */
+function tFmt(t){ const r = Math.round(t); return (r>0?'+':'') + (r===0?0:r) + '°'; }
+const tCls = t => Math.round(t)>0 ? 'pos' : Math.round(t)<0 ? 'neg' : '';
+const tSpan = t => `<span class="${tCls(t)}">${tFmt(t)}</span>`;
+const dirFrom = d => T('from')[Math.round(((d%360)+360)%360/45)%8];
+const dateOf = s => { const [y,m,d] = s.slice(0,10).split('-').map(Number); return new Date(y,m-1,d); };
+const colonTime = () => lang === 'en' || lang === 'nl';
+const dNum = dt => (lang === 'fi' || lang === 'sv') ? `${dt.getDate()}.${dt.getMonth()+1}.` : dt.toLocaleDateString(T('locale'), {day:'numeric', month:'short'});
+const wday = (dt, style) => { const s = dt.toLocaleDateString(T('locale'), {weekday:style}); return s.charAt(0).toUpperCase() + s.slice(1); };
+const dShort = s => { const d = dateOf(s); return `${wday(d,'short')} ${dNum(d)}`; };
+const hh = s => s.slice(11,13);
+const hm = s => s.slice(11,16).replace(':', colonTime() ? ':' : '.');
+const mm = v => v<0.05 ? '' : dec(v<10 ? v.toFixed(1) : Math.round(v));
+function arrow(dir){ // nuoli osoittaa tuulen kulkusuuntaan
+  return `<svg class="arr" viewBox="0 0 24 24" style="transform:rotate(${(dir+180)%360}deg)" aria-label="${T('windAria')} ${dirFrom(dir)}"><path d="M12 3l6 15-6-4-6 4z" fill="currentColor"/></svg>`;
+}
+function minsBetween(a,b){ const t = s => +s.slice(11,13)*60 + +s.slice(14,16); return t(b)-t(a); }
+const windTxt = (v, d) => `${v} m/s ${dirFrom(d)}`;
+
+/* ---------- Tallennetut paikat ---------- */
+const store = {
+  get(){ try { return JSON.parse(localStorage.getItem('avoinsaa.places')||'[]'); } catch { return []; } },
+  set(v){ try { localStorage.setItem('avoinsaa.places', JSON.stringify(v)); } catch {} }
+};
+const DEFAULT = {name:'Helsinki', admin:'Uusimaa', country:'', fiDefault:true, lat:60.1699, lon:24.9384};
+let current = store.get()[0] || DEFAULT;
+const isSelf = p => p.self || p.name === 'Oma sijainti';
+const pname = p => isSelf(p) ? T('myLoc') : p.name;
+const pcountry = p => p.fiDefault ? T('finland') : p.country;
+
+function remember(p){
+  const list = store.get().filter(x => !(Math.abs(x.lat-p.lat)<1e-3 && Math.abs(x.lon-p.lon)<1e-3));
+  list.unshift(p); store.set(list.slice(0,6)); renderRecent();
+}
+function renderRecent(){
+  const list = store.get();
+  $('#recent').innerHTML = list.length<2 ? '' : list.map((p,i)=>
+    `<button class="chip ${i===0?'on':''}" data-i="${i}">${esc(pname(p))}</button>`).join('');
+  $('#recent').querySelectorAll('.chip').forEach(b => b.onclick = () => select(store.get()[+b.dataset.i]));
+}
+
+/* ---------- Haku ---------- */
+const q = $('#q'), res = $('#results');
+let hits = [], active = -1, timer, ctrl;
+q.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(search, 250); });
+q.addEventListener('keydown', e => {
+  if (res.hidden || !hits.length) return;
+  if (e.key==='ArrowDown'){ active=Math.min(hits.length-1,active+1); paintHits(); e.preventDefault(); }
+  else if (e.key==='ArrowUp'){ active=Math.max(0,active-1); paintHits(); e.preventDefault(); }
+  else if (e.key==='Escape'){ res.hidden = true; }
+});
+$('#searchForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!hits.length) await search();
+  if (hits.length) select(hits[Math.max(0,active)]);
+});
+document.addEventListener('click', e => { if (!e.target.closest('.search')) res.hidden = true; });
+
+async function search(){
+  const term = q.value.trim();
+  if (term.length < 2){ res.hidden = true; hits=[]; return; }
+  ctrl?.abort(); ctrl = new AbortController();
+  try{
+    const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(term)}&count=8&language=${T('geo')}&format=json`, {signal:ctrl.signal});
+    const j = await r.json();
+    hits = (j.results||[]).map(x => ({name:x.name, admin:x.admin1||'', country:x.country||'', lat:x.latitude, lon:x.longitude}));
+    active = hits.length ? 0 : -1;
+    paintHits();
+  }catch(err){ if (err.name!=='AbortError'){ hits=[]; res.innerHTML=`<div class="empty">${T('searchFail')}</div>`; res.hidden=false; } }
+}
+function paintHits(){
+  res.hidden = false;
+  res.innerHTML = hits.length ? hits.map((h,i)=>
+    `<button type="button" class="${i===active?'active':''}" data-i="${i}">${esc(h.name)} <small>${esc([h.admin,h.country].filter(Boolean).join(', '))}</small></button>`).join('')
+    : `<div class="empty">${T('noHits')}</div>`;
+  res.querySelectorAll('button').forEach(b => b.onclick = () => select(hits[+b.dataset.i]));
+}
+function select(p){
+  res.hidden = true; q.value=''; hits=[];
+  current = p; remember(p); load();
+}
+
+$('#locate').onclick = () => {
+  if (!navigator.geolocation){ showError(T('noGeo')); return; }
+  navigator.geolocation.getCurrentPosition(
+    pos => select({name:'', self:true, admin:'', country:'', lat:+pos.coords.latitude.toFixed(4), lon:+pos.coords.longitude.toFixed(4)}),
+    () => showError(T('geoDenied'), false),
+    {timeout:10000, maximumAge:600000});
+};
+
+/* ---------- Kielivalinta ---------- */
+let last = null; // {w, ob, place} viimeksi näytetty, jotta kielen vaihto ei hae dataa uudelleen
+document.querySelectorAll('#langSel button').forEach(b => b.onclick = () => {
+  if (b.dataset.lang === lang) return;
+  lang = b.dataset.lang;
+  try { localStorage.setItem('avoinsaa.lang', lang); } catch {}
+  applyStatic(); renderRecent();
+  if (last && last.place === current){
+    render(last.w);
+    if (last.ob) safeRender(renderObs, last.ob, last.place);
+    if (last.road) safeRender(renderRoad, last.road, last.place);
+  } else load();
+});
+
+/* ---------- Ennuste ---------- */
+async function load(){
+  $('#main').innerHTML = `<section class="panel state"><div class="skel"></div><div class="skel"></div>${esc(T('loadingFor', pname(current)))}</section>`;
+  const H = 'temperature_2m,apparent_temperature,precipitation,precipitation_probability,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m,relative_humidity_2m,is_day';
+  const D = 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,sunrise,sunset,daylight_duration,uv_index_max';
+  const C = 'temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m,relative_humidity_2m,is_day,precipitation,pressure_msl';
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${current.lat}&longitude=${current.lon}&current=${C}&hourly=${H}&daily=${D}&timezone=auto&forecast_days=10&wind_speed_unit=ms`;
+  const tok = ++loadSeq, place = current;
+  last = null;
+  const obsP = fetchObs(place).then(o => ({o}), e => ({e}));
+  const roadP = fetchRoad(place).then(o => ({o}), e => ({e}));
+  try{
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(r.status);
+    const w = await r.json();
+    if (tok !== loadSeq) return;
+    render(w);
+    last = {w, ob:null, place};
+  }catch(e){
+    if (tok === loadSeq) showError(T('fcFail'), true);
+    return;
+  }
+  roadP.then(rd => { if (tok === loadSeq && last && $('#road')){ last.road = rd; safeRender(renderRoad, rd, place); } });
+  const ob = await obsP;
+  if (tok === loadSeq && $('#obs')){ last.ob = ob; safeRender(renderObs, ob, place); }
+}
+let loadSeq = 0;
+function safeRender(fn, data, place){
+  try { fn(data, place); }
+  catch(err){ console.error(err); fn({e: new Diag('js', String(err && (err.stack || err.message) || err))}, place); }
+}
+
+/* ---------- Havainnot (Ilmatieteen laitos, avoin data) ---------- */
+const OBS_PARAMS = 't2m,ws_10min,wg_10min,wd_10min,rh,td,r_1h,ri_10min,snow_aws,p_sea,vis,n_man';
+const inFinland = p => p.lat > 59.3 && p.lat < 70.3 && p.lon > 19 && p.lon < 31.8;
+function km(a, b){
+  const R = 6371, r = Math.PI/180, dLa = (b.lat-a.lat)*r, dLo = (b.lon-a.lon)*r;
+  const x = Math.sin(dLa/2)**2 + Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dLo/2)**2;
+  return 2*R*Math.asin(Math.sqrt(x));
+}
+/* Virhe, joka kertoo mikä meni pieleen: verkko/CORS, HTTP-virhe vai lukuvirhe */
+class Diag extends Error { constructor(kind, detail, url){ super(detail); this.kind = kind; this.detail = detail; this.url = url; } }
+async function getText(url){
+  let r;
+  const ac = new AbortController(), timer = setTimeout(() => ac.abort(), 20000);
+  try { r = await fetch(url, {signal: ac.signal}); }
+  catch(e){ clearTimeout(timer); throw e.name === 'AbortError' ? new Diag('timeout', 'Timeout 20 s', url) : new Diag('network', `${e.name}: ${e.message}`, url); }
+  const text = await r.text().catch(() => '');
+  clearTimeout(timer);
+  if (!r.ok){
+    const ex = [...text.matchAll(/<(?:\w+:)?ExceptionText>([\s\S]*?)<\/(?:\w+:)?ExceptionText>/g)].map(m => m[1].trim()).join(' / ');
+    throw new Diag('http', `HTTP ${r.status}${ex ? ' – ' + ex : ''}`, url);
+  }
+  return text;
+}
+async function getJSON(url){
+  const t = await getText(url);
+  try { return JSON.parse(t); } catch(e){ throw new Diag('parse', `JSON: ${e.message}`, url); }
+}
+function diagHtml(e){
+  const kind = e && e.kind ? e.kind : 'x';
+  return `<details class="diag"><summary>${T('tech')}</summary><p>${esc(T('diag_' + kind))}</p>`
+    + `<code>${esc(e?.detail || e?.message || String(e))}</code>`
+    + (e?.url ? `<p><a href="${esc(e.url)}" target="_blank" rel="noopener">${T('openQuery')}</a></p><code>${esc(e.url)}</code>` : '')
+    + `</details>`;
+}
+
+const xmlTag = (el, n) => el.getElementsByTagNameNS('*', n);
+function parseXml(text){
+  const xml = new DOMParser().parseFromString(text, 'application/xml');
+  if (xml.getElementsByTagName('parsererror').length) throw new Error('XML parse error');
+  return xml;
+}
+// timevaluepair: yksi PointTimeSeriesObservation per asema ja suure
+function parseTVP(text){
+  const xml = parseXml(text), tag = xmlTag;
+  const stations = new Map();
+  for (const ob of tag(xml, 'PointTimeSeriesObservation')){
+    const loc = tag(ob, 'Location')[0];
+    const ts = tag(ob, 'MeasurementTimeseries')[0];
+    if (!ts) continue;
+    const posTxt = (tag(ob, 'pos')[0]?.textContent || '').trim();
+    const id = (loc && tag(loc, 'identifier')[0]?.textContent?.trim()) || posTxt;
+    if (!id) continue;
+    let st = stations.get(id);
+    if (!st){
+      const names = loc ? [...tag(loc, 'name')] : [];
+      const nm = names.find(x => /\/name$/.test(x.getAttribute('codeSpace')||'')) || names[0];
+      const pos = posTxt.split(/\s+/).map(Number);
+      st = {id, name: nm?.textContent?.trim() || '', lat: pos[0], lon: pos[1], series:{}};
+      stations.set(id, st);
+    }
+    const gid = ts.getAttributeNS('http://www.opengis.net/gml/3.2','id') || ts.getAttribute('gml:id') || ts.getAttribute('id') || '';
+    const param = gid.split('-').pop();
+    st.series[param] = [...tag(ts, 'MeasurementTVP')]
+      .map(tv => ({t: new Date(tag(tv,'time')[0]?.textContent), v: parseFloat(tag(tv,'value')[0]?.textContent)}))
+      .filter(x => Number.isFinite(x.v) && !isNaN(x.t));
+  }
+  return [...stations.values()];
+}
+// simple: yksi BsWfsElement per aika, suure ja asema (ei aseman nimeä)
+function parseSimple(text){
+  const xml = parseXml(text), tag = xmlTag;
+  const stations = new Map();
+  for (const el of tag(xml, 'BsWfsElement')){
+    const posTxt = (tag(el, 'pos')[0]?.textContent || '').trim();
+    const param = tag(el, 'ParameterName')[0]?.textContent?.trim();
+    const t = new Date(tag(el, 'Time')[0]?.textContent);
+    const v = parseFloat(tag(el, 'ParameterValue')[0]?.textContent);
+    if (!posTxt || !param) continue;
+    let st = stations.get(posTxt);
+    if (!st){ const pos = posTxt.split(/\s+/).map(Number); st = {id: posTxt, name: '', lat: pos[0], lon: pos[1], series:{}}; stations.set(posTxt, st); }
+    if (Number.isFinite(v) && !isNaN(t)) (st.series[param] ||= []).push({t, v});
+  }
+  stations.forEach(st => Object.values(st.series).forEach(a => a.sort((x,y) => x.t - y.t)));
+  return [...stations.values()];
+}
+
+async function fetchObs(p){
+  if (!inFinland(p)) return null;
+  const st = new Date(Date.now() - 12*3600e3); st.setUTCMinutes(0,0,0);
+  const W = 'https://opendata.fmi.fi/wfs?service=WFS&version=2.0.0&request=getFeature&storedquery_id=fmi::observations::weather::';
+  const when = `&timestep=10&starttime=${st.toISOString().slice(0,19)}Z`;
+  const ll = `&latlon=${p.lat.toFixed(4)},${p.lon.toFixed(4)}&maxlocations=3`;
+  const bb = `&bbox=${(p.lon-0.8).toFixed(3)},${(p.lat-0.4).toFixed(3)},${(p.lon+0.8).toFixed(3)},${(p.lat+0.4).toFixed(3)}`;
+  const attempts = [
+    {name:'timevaluepair + latlon', url: `${W}timevaluepair${when}${ll}&parameters=${OBS_PARAMS}`, parse: parseTVP},
+    {name:'simple + latlon',        url: `${W}simple${when}${ll}&parameters=${OBS_PARAMS}`,        parse: parseSimple},
+    {name:'timevaluepair + bbox',   url: `${W}timevaluepair${when}${bb}&parameters=t2m,ws_10min,wg_10min,wd_10min,rh,r_1h`, parse: parseTVP},
+  ];
+  const log = [];
+  for (const a of attempts){
+    let text;
+    try { text = await getText(a.url); }
+    catch(e){
+      log.push(`${a.name}: ${e.detail}`);
+      if (e.kind === 'network' || e.kind === 'timeout'){ e.detail = log.join('\n'); throw e; }
+      continue;
+    }
+    let list;
+    try { list = a.parse(text).filter(x => Number.isFinite(x.lat) && Object.values(x.series).some(v => v.length)); }
+    catch(e){ log.push(`${a.name}: ${e.message}`); continue; }
+    if (list.length){
+      list.forEach(x => x.dist = km(p, x));
+      list.sort((x,y) => x.dist - y.dist);
+      return list.find(x => x.series.t2m?.length) || list[0];
+    }
+    log.push(`${a.name}: 0 asemaa, ${text.length} merkkiä: ${text.slice(0, 220).replace(/\s+/g, ' ')}`);
+  }
+  throw new Diag('empty', log.join('\n'), attempts[0].url);
+}
+
+const f1 = v => dec((Math.abs(v) < 0.05 ? 0 : v).toFixed(1));
+const t1 = v => `<span class="${v>=0.05?'pos':v<=-0.05?'neg':''}">${v>=0.05?'+':''}${f1(v)}°</span>`;
+const clock = d => { if (!(d instanceof Date) || isNaN(d)) return '–'; const s = d.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit', hour12:false, timeZone:'Europe/Helsinki'}); return colonTime() ? s : s.replace(':', '.'); };
+
+function renderObs({o, e}, place){
+  const box = $('#obs');
+  const head = extra => `<div class="obs-head"><h2>${T('obsTitle')}</h2>${extra||''}</div>`;
+  if (e){
+    box.innerHTML = head() + `<p class="obs-note">${T(e.kind === 'empty' ? 'noStationOrEmpty' : 'obsFail')}</p>`
+      + `<div><button type="button" class="btn btn-s" id="obsRetry">${T('retry')}</button></div>` + diagHtml(e);
+    $('#obsRetry').onclick = async () => {
+      box.innerHTML = head() + '<div class="skel"></div><div class="skel"></div>';
+      const r = await fetchObs(place).then(o => ({o}), e => ({e}));
+      if (last && last.place === place) last.ob = r;
+      safeRender(renderObs, r, place);
+    };
+    return;
+  }
+  if (!o){ box.innerHTML = head() + `<p class="obs-note">${inFinland(place) ? T('noStation') : T('onlyFi')}</p>`; return; }
+
+  const S = o.series, lastV = k => S[k]?.length ? S[k][S[k].length-1] : null;
+  const t = lastV('t2m');
+  const latestT = new Date(Math.max(...Object.values(S).filter(a=>a.length).map(a => +a[a.length-1].t)));
+  const ago = Math.round((Date.now() - latestT)/60000);
+  const fresh = ago <= 60;
+  const agoTxt = ago < 1 ? T('justNow') : ago < 60 ? T('minAgo', ago) : ago < 1440 ? T('hAgo', Math.floor(ago/60), ago%60) : T('dayAgo');
+
+  // trendi: lämpötila nyt vs. tunti sitten
+  let trend = '';
+  if (t){
+    const prev = S.t2m.find(x => +x.t >= +t.t - 60*60000);
+    if (prev && prev !== t){
+      const dlt = t.v - prev.v;
+      trend = Math.abs(dlt) < 0.15 ? T('trendSame') : T(dlt>0 ? 'trendUp' : 'trendDown', f1(Math.abs(dlt)));
+    }
+  }
+  // sade: 1 h ja 12 h summa tasatunneista
+  const r1 = lastV('r_1h');
+  const r12 = (S.r_1h||[]).filter(x => x.t.getUTCMinutes() === 0).reduce((a,x) => a + Math.max(0,x.v), 0);
+  const ri = lastV('ri_10min');
+
+  const facts = [];
+  const add = (k, label, val) => { if (lastV(k)) facts.push(`<div class="fact"><span>${label}</span><b>${val(lastV(k).v)}</b></div>`); };
+  add('ws_10min', T('wind'), v => `${f1(v)} m/s${lastV('wd_10min') ? ' '+dirFrom(lastV('wd_10min').v) : ''}`);
+  add('wg_10min', T('gusts'), v => `${f1(v)} m/s`);
+  add('rh', T('humidity'), v => `${Math.round(v)} %`);
+  add('td', T('dew'), v => t1(v));
+  if (S.r_1h?.length) facts.push(`<div class="fact"><span>${T('rain12')}</span><b>${r1 ? f1(Math.max(0,r1.v)) : '–'} / ${f1(r12)} mm</b></div>`);
+  if (ri && ri.v > 0) facts.push(`<div class="fact"><span>${T('rainRate')}</span><b>${f1(ri.v)} mm/h</b></div>`);
+  add('snow_aws', T('snow'), v => v > 0 ? `${Math.round(v)} cm` : T('noSnow'));
+  add('p_sea', T('pressure'), v => `${f1(v)} hPa`);
+  add('vis', T('vis'), v => v >= 10000 ? `${Math.round(v/1000)} km` : `${f1(v/1000)} km`);
+  add('n_man', T('clouds'), v => `${T('cloud')[Math.round(v)] || '–'} <small>(${Math.round(v)}/8)</small>`);
+
+  // 12 h lämpötilakäyrä
+  let spark = '';
+  const TS = S.t2m || [];
+  if (TS.length > 3){
+    const W = 600, H = 84, pad = 8;
+    let lo = Math.min(...TS.map(x=>x.v)), hi = Math.max(...TS.map(x=>x.v));
+    const mn = lo, mx = hi;
+    if (hi - lo < 2){ const m = (hi+lo)/2; lo = m-1; hi = m+1; }
+    const t0 = +TS[0].t, t1s = +TS[TS.length-1].t, span = Math.max(1, t1s - t0);
+    const X = x => ((+x.t - t0)/span*W).toFixed(1), Yv = v => (pad + (hi-v)/(hi-lo)*(H-2*pad)).toFixed(1);
+    const line = TS.map(x => `${X(x)},${Yv(x.v)}`).join(' ');
+    const zero = lo < 0 && hi > 0 ? `<line x1="0" x2="${W}" y1="${Yv(0)}" y2="${Yv(0)}" stroke="var(--muted)" stroke-dasharray="4 5" stroke-width="1" vector-effect="non-scaling-stroke"/>` : '';
+    spark = `<div class="spark">
+      <div class="spark-cap"><span>${T('spark')}</span><span>${T('minmax', t1(mn), t1(mx))}</span></div>
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-label="${T('sparkAria')}">
+        <defs><linearGradient id="og" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent)" stop-opacity=".25"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>
+        ${zero}<path d="M0,${H} L${line.replace(/ /g,' L')} L${W},${H} Z" fill="url(#og)"/>
+        <polyline points="${line}" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+      </svg>
+      <div class="spark-axis"><span>${clock(TS[0].t)}</span><span>${clock(new Date((t0+t1s)/2))}</span><span>${clock(TS[TS.length-1].t)}</span></div>
+    </div>`;
+  }
+
+  box.innerHTML = head(`<span class="pill ${fresh?'ok':'stale'}">${T(fresh?'fresh':'stale')} · ${T('at', clock(latestT))}, ${agoTxt}</span>`) + `
+    <div class="obs-st">${esc(o.name || T('station'))} <small>${T('dist', o.dist < 1 ? '' : f1(o.dist))}</small></div>
+    <div class="obs-body">
+      <div>${t ? `<div class="obs-temp num">${t1(t.v)}</div>` : `<div class="obs-note">${T('noTemp')}</div>`}
+        ${trend ? `<div class="obs-trend">${trend}</div>` : ''}</div>
+      <div class="facts">${facts.join('')}</div>
+    </div>${spark}`;
+}
+
+/* ---------- Tiesää ja kelikamerat (Fintraffic / Digitraffic, avoin data) ---------- */
+const DT = 'https://tie.digitraffic.fi';
+const memo = {};
+function stationList(key, url){
+  if (!memo[key]) memo[key] = getJSON(url).then(j => (j.features || []).map(f => ({
+      id: f.id ?? f.properties?.id, name: f.properties?.name || '',
+      lon: +f.geometry?.coordinates?.[0], lat: +f.geometry?.coordinates?.[1],
+      status: f.properties?.collectionStatus, presets: f.properties?.presets || []
+    })).filter(s => Number.isFinite(s.lat) && Number.isFinite(s.lon) && (!s.status || s.status === 'GATHERING')))
+    .catch(e => { delete memo[key]; throw e; });
+  return memo[key];
+}
+async function fetchRoad(p){
+  if (!inFinland(p)) return null;
+  const [ws, cams] = await Promise.all([
+    stationList('rw', DT + '/api/weather/v1/stations'),
+    stationList('cam', DT + '/api/weathercam/v1/stations').catch(() => [])
+  ]);
+  const near = ws.map(s => ({...s, dist: km(p, s)})).filter(s => s.dist <= 60).sort((a,b) => a.dist - b.dist).slice(0, 3);
+  const data = await Promise.all(near.map(s => getJSON(`${DT}/api/weather/v1/stations/${s.id}/data`).catch(() => null)));
+  const stations = near.map((s,i) => ({...s, values: data[i]?.sensorValues || []})).filter(s => s.values.length);
+  const c = cams.map(s => ({...s, dist: km(p, s)}))
+    .filter(s => s.dist <= 40 && s.presets.some(x => x.inCollection !== false))
+    .sort((a,b) => a.dist - b.dist)[0];
+  const cam = c ? {name: c.name, dist: c.dist, presets: c.presets.filter(x => x.inCollection !== false).map(x => x.id).slice(0, 4)} : null;
+  return {stations, cam};
+}
+const prettyName = s => { const t = String(s || '').replace(/_/g, ' ').replace(/\s+/g, ' ').trim(); return t.charAt(0).toUpperCase() + t.slice(1); };
+function sev(text){
+  if (/jää|kuura|jäinen|ice|icy|frost|hoar/i.test(text)) return 'crit';
+  if (/lumi|luminen|sohjo|snow|slush/i.test(text)) return 'warn';
+  if (/kuiva|dry/i.test(text)) return 'ok';
+  return '';
+}
+function warnSev(text, value){
+  if (!text) return null;
+  if (/hälytys|alarm/i.test(text)) return 'crit';
+  if (/(^|\s)(ei|no)\s/i.test(' ' + text + ' ') || value === 0) return null;
+  if (/varoitus|warning|varo/i.test(text)) return 'warn';
+  return null;
+}
+function renderRoad({o, e}, place){
+  const box = $('#road'); if (!box) return;
+  const head = `<div class="obs-head"><h2>${T('rwTitle')}</h2><span class="src">Fintraffic</span></div>`;
+  if (e){ box.innerHTML = head + `<p class="obs-note">${T('rwFail')}</p>` + diagHtml(e); return; }
+  if (!o || (!o.stations.length && !o.cam)){ box.innerHTML = head + `<p class="obs-note">${inFinland(place) ? T('rwNone') : T('rwOnlyFi')}</p>`; return; }
+
+  const rows = o.stations.map(s => {
+    const V = {}; s.values.forEach(v => { V[v.name] = v; });
+    const val = k => V[k] && V[k].value !== null && V[k].value !== '' && Number.isFinite(+V[k].value) ? +V[k].value : null;
+    const desc = k => V[k] ? ((lang === 'fi' ? V[k].sensorValueDescriptionFi : V[k].sensorValueDescriptionEn) || V[k].sensorValueDescriptionFi || '') : '';
+    const times = s.values.map(v => Date.parse(v.measuredTime)).filter(Number.isFinite);
+    const tl = times.length ? new Date(Math.max(...times)) : null;
+    const road = val('TIE_1'), air = val('ILMA'), keli = desc('KELI_1'), wtxt = desc('VAROITUS_1'), ws = warnSev(wtxt, val('VAROITUS_1'));
+    const big = (label, v) => v === null ? '' : `<div class="rw-big"><span>${label}</span><b class="num">${t1(v)}</b></div>`;
+    const chips = [
+      keli ? `<span class="chip-s ${sev(keli)}">${esc(keli)}</span>` : '',
+      ws ? `<span class="chip-s ${ws}">${esc(wtxt)}</span>` : ''
+    ].join('');
+    const f = [];
+    const fact = (label, html) => f.push(`<span>${label} <b>${html}</b></span>`);
+    if (val('KESKITUULI') !== null) fact(T('wind'), `${f1(val('KESKITUULI'))} m/s${val('TUULENSUUNTA') !== null ? ' ' + dirFrom(val('TUULENSUUNTA')) : ''}${val('MAKSIMITUULI') !== null ? ` (${f1(val('MAKSIMITUULI'))})` : ''}`);
+    const rainD = desc('SADE'), rainI = val('SADE_INTENSITEETTI');
+    if (rainD || rainI !== null) fact(T('rain'), esc(rainD || '') + (rainI ? ` ${f1(rainI)} mm/h` : ''));
+    if (val('ILMAN_KOSTEUS') !== null) fact(T('humidity'), `${Math.round(val('ILMAN_KOSTEUS'))} %`);
+    if (val('KASTEPISTE') !== null) fact(T('dew'), t1(val('KASTEPISTE')));
+    const vis = val('NÄKYVYYS_KM') ?? val('NAKYVYYS_KM');
+    if (vis !== null) fact(T('vis'), `${f1(vis)} km`);
+    return `<div class="rw">
+      <div class="rw-head"><b>${esc(prettyName(s.name))}</b><small>${f1(s.dist)} km${tl ? ' · ' + T('at', clock(tl)) : ''}</small></div>
+      <div class="rw-main">${big(T('roadT'), road)}${big(T('airT'), air)}${chips ? `<div class="rw-chips">${chips}</div>` : ''}</div>
+      ${f.length ? `<div class="rw-facts">${f.join('')}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  let cam = '';
+  if (o.cam && o.cam.presets.length){
+    const pr = o.cam.presets, src = id => `https://weathercam.digitraffic.fi/${encodeURIComponent(id)}.jpg`;
+    cam = `<figure class="cam" id="cam">
+      <img id="camImg" src="${src(pr[0])}" alt="${esc(T('camAlt', prettyName(o.cam.name)))}" loading="lazy">
+      <figcaption><span><b>${T('cam')}</b> · ${esc(prettyName(o.cam.name))} · ${f1(o.cam.dist)} km</span>
+        ${pr.length > 1 ? `<span class="cam-tabs">${pr.map((id,i) => `<button type="button" data-src="${src(id)}" aria-pressed="${i===0}" aria-label="${esc(T('camDir', i+1))}">${i+1}</button>`).join('')}</span>` : ''}
+      </figcaption></figure>`;
+  }
+  box.innerHTML = head + (rows ? `<div class="rw-list">${rows}</div>` : '') + cam;
+  const img = $('#camImg');
+  if (img){
+    img.onerror = () => { const f = $('#cam'); if (f) f.hidden = true; };
+    box.querySelectorAll('.cam-tabs button').forEach(b => b.onclick = () => {
+      img.src = b.dataset.src;
+      box.querySelectorAll('.cam-tabs button').forEach(x => x.setAttribute('aria-pressed', x === b));
+    });
+  }
+}
+
+function showError(msg, retry){
+  $('#main').innerHTML = `<section class="panel state"><p>${esc(msg)}</p>${retry?`<button class="btn" id="retry">${T('retry')}</button>`:''}</section>`;
+  if (retry) $('#retry').onclick = load;
+}
+
+/* ---------- Aurinko ---------- */
+const toMin = s => { const [y,m,dd] = s.slice(0,10).split('-').map(Number); return Date.UTC(y,m-1,dd,+s.slice(11,13),+s.slice(14,16))/60000; };
+const dur = m => { m = Math.max(0, Math.round(m)); const h = Math.floor(m/60), r = m%60; return h ? `${h} ${lang === 'nl' ? 'u' : 'h'} ${r} min` : `${r} min`; };
+function sunStrip(c, d){
+  const dl = d.daylight_duration ? d.daylight_duration.map(s => s/60) : d.time.map((_,j) => minsBetween(d.sunrise[j], d.sunset[j]));
+  const len0 = dl[0], now = toMin(c.time);
+  const rise = toMin(d.sunrise[0]), set = toMin(d.sunset[0]);
+  const polarNight = len0 < 1, midnightSun = len0 > 1439;
+
+  let status, f = null;
+  if (polarNight) status = T('polarNight');
+  else if (midnightSun) status = T('midnightSun');
+  else if (now < rise) status = T('risesIn', dur(rise-now));
+  else if (now < set){ status = T('daylightLeft', dur(set-now)); f = (now-rise)/(set-rise); }
+  else {
+    const nextRise = d.sunrise[1] && dl[1] >= 1;
+    status = T('setAgo', dur(now-set)) + (nextRise ? T('riseTomorrow', hm(d.sunrise[1])) : '');
+  }
+
+  let change = '';
+  if (dl.length > 1 && !polarNight && !midnightSun){
+    const dlt = Math.round(dl[1] - dl[0]);
+    change = dlt === 0 ? T('same') : T(dlt > 0 ? 'longer' : 'shorter', Math.abs(dlt));
+  }
+
+  // auringon rata: horisontti y=58, kaari 20→280
+  const ax = t => (150 - 130*Math.cos(Math.PI*t)).toFixed(1), ay = t => (58 - 44*Math.sin(Math.PI*t)).toFixed(1);
+  const done = f != null ? `<path d="M20,58 A130,44 0 0 1 ${ax(f)},${ay(f)}" fill="none" stroke="var(--sun)" stroke-width="3" stroke-linecap="round"/>
+       <circle cx="${ax(f)}" cy="${ay(f)}" r="8" fill="var(--sun)"/>` : '';
+  const arc = `<svg class="sun-arc" viewBox="0 0 300 66" aria-hidden="true">
+      <path d="M20,58 A130,44 0 0 1 280,58" fill="none" stroke="var(--line)" stroke-width="2" stroke-dasharray="3 5"/>
+      ${done}
+      <line x1="4" x2="296" y1="58" y2="58" stroke="var(--muted)" stroke-width="1.2"/>
+    </svg>`;
+
+  const ends = polarNight || midnightSun ? '' : `<div class="sun-ends">
+      <div class="sun-end"><span>${T('rises')}</span><b class="num">${hm(d.sunrise[0])}</b></div>
+      <div class="sun-end r"><span>${T('sets')}</span><b class="num">${hm(d.sunset[0])}</b></div></div>`;
+  return `<div class="sun">
+    <div class="sun-viz">${arc}${ends}</div>
+    <div class="sun-info">
+      <div class="sun-status">${status}</div>
+      <div class="sun-meta">${T('dayLen')} <b class="num">${polarNight ? '0 min' : midnightSun ? '24 h' : dur(len0)}</b>${change ? ` · ${change}` : ''}</div>
+    </div>
+  </div>`;
+}
+
+function daySun(d, j){
+  const len = d.daylight_duration ? d.daylight_duration[j]/60 : minsBetween(d.sunrise[j], d.sunset[j]);
+  if (len < 1) return T('polarShort');
+  if (len > 1439) return T('midnightShort');
+  return `<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="10" r="3.5" fill="var(--sun)"/><line x1="1" x2="15" y1="13.5" y2="13.5" stroke="currentColor" stroke-width="1.4"/></svg>${hm(d.sunrise[j])}–${hm(d.sunset[j])}`;
+}
+
+function skyClass(c){
+  const k = +c.weather_code;
+  if (!c.is_day) return 'sky-night';
+  if (k <= 1) return 'sky-clear';
+  if (k === 2) return 'sky-fair';
+  if (k === 3 || k === 45 || k === 48) return 'sky-cloudy';
+  if ((k >= 71 && k <= 77) || k === 85 || k === 86) return 'sky-snow';
+  return 'sky-rain';
+}
+
+function render(w){
+  const c = w.current, h = w.hourly, d = w.daily;
+  const nowKey = c.time.slice(0,13);
+  let start = h.time.findIndex(t => t.slice(0,13) >= nowKey); if (start<0) start = 0;
+  const n = Math.min(48, h.time.length-start);
+  const place = [current.admin, pcountry(current)].filter(Boolean).join(', ');
+  const DESC = T('desc');
+
+  /* nykytila */
+  const nowHtml = `
+  <section class="panel now ${skyClass(c)}">
+    <div class="now-place"><h1>${esc(pname(current))}</h1>
+      <p>${esc(place || `${current.lat.toFixed(2)}° N, ${current.lon.toFixed(2)}° E`)} · ${T('updated', hm(c.time))}</p></div>
+    <div class="now-main">${icon(c.weather_code, c.is_day, 'ic')}<div class="now-temp num">${tSpan(c.temperature_2m)}</div></div>
+    <div>
+      <div class="now-desc">${esc(DESC[c.weather_code]||'')}</div>
+      <div class="facts">
+        <div class="fact"><span>${T('feels')}</span><b>${tSpan(c.apparent_temperature)}</b></div>
+        <div class="fact"><span>${T('wind')}</span><b>${windTxt(Math.round(c.wind_speed_10m), c.wind_direction_10m)}</b></div>
+        <div class="fact"><span>${T('gusts')}</span><b>${Math.round(c.wind_gusts_10m)} m/s</b></div>
+        <div class="fact"><span>${T('humidity')}</span><b>${Math.round(c.relative_humidity_2m)} %</b></div>
+        <div class="fact"><span>${T('pressure')}</span><b>${Math.round(c.pressure_msl)} hPa</b></div>
+      </div>
+    </div>
+    ${sunStrip(c, d)}
+  </section>`;
+
+  /* tunnit */
+  const COLW = 54, idx = [...Array(n)].map((_,i)=>start+i);
+  const temps = idx.map(i=>h.temperature_2m[i]);
+  let lo = Math.min(...temps), hi = Math.max(...temps);
+  if (hi-lo < 6){ const m=(hi+lo)/2; lo=m-3; hi=m+3; }
+  const CH = 64, pad = 8, Y = t => pad + (hi-t)/(hi-lo)*(CH-2*pad);
+  const W = n*COLW, pts = temps.map((t,i)=>[i*COLW+COLW/2, Y(t)]);
+  const line = pts.map(p=>p.map(v=>v.toFixed(1)).join(',')).join(' ');
+  const area = `M${pts[0][0]},${CH} L${line.replace(/ /g,' L')} L${pts[pts.length-1][0]},${CH} Z`;
+  const zero = (lo<0 && hi>0) ? `<line x1="0" x2="${W}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}" stroke="var(--muted)" stroke-dasharray="3 4" stroke-width="1"/>` : '';
+  const pMax = Math.max(2, ...idx.map(i=>h.precipitation[i]));
+  const curve = `<svg class="curve" width="${W}" height="${CH}" viewBox="0 0 ${W} ${CH}" style="grid-column:1/-1">
+    <defs><linearGradient id="tg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--warm)" stop-opacity=".22"/><stop offset="1" stop-color="var(--warm)" stop-opacity="0"/></linearGradient></defs>
+    <rect x="0" y="0" width="${COLW}" height="${CH}" fill="var(--now-tint)"/>${zero}<path d="${area}" fill="url(#tg)"/><polyline points="${line}" fill="none" stroke="var(--warm)" stroke-width="2.2" stroke-linejoin="round"/>
+    ${pts.map((p,k)=>`<circle cx="${p[0]}" cy="${p[1].toFixed(1)}" r="${k===0?4:2.2}" fill="${temps[k]<0?'var(--cold)':'var(--warm)'}"/>`).join('')}
+  </svg>`;
+  const cols = idx.map((i,k) => {
+    const t = h.time[i], nd = k>0 && hh(t)==='00';
+    return `<div class="hcol ${nd?'newday':''}${k===0?' nowcol':''}" style="grid-row:1;grid-column:${k+1}">
+      <div class="hday">${k===0 ? T('now') : nd ? dShort(t) : ''}</div>
+      <div class="htime">${hh(t)}</div>
+      ${icon(h.weather_code[i], h.is_day[i])}
+      <div class="htemp">${tSpan(h.temperature_2m[i])}</div>
+    </div>`;
+  }).join('');
+  const lower = idx.map((i,k) => {
+    const p = h.precipitation[i], pop = h.precipitation_probability[i];
+    return `<div class="hcol ${k>0&&hh(h.time[i])==='00'?'newday':''}${k===0?' nowcol':''}" style="grid-row:3;grid-column:${k+1}">
+      <div class="hprec">${p>=0.05?`<i style="height:${Math.max(3,Math.round(p/pMax*30))}px"></i>`:''}</div>
+      <div class="hmm">${mm(p)}</div>
+      <div class="hpop">${pop!=null && pop>=10 ? pop+' %' : ''}</div>
+      <div class="hwind">${arrow(h.wind_direction_10m[i])}${Math.round(h.wind_speed_10m[i])}<small>(${Math.round(h.wind_gusts_10m[i])})</small></div>
+    </div>`;
+  }).join('');
+  const hoursHtml = `
+  <section class="panel">
+    <h2>${T('h48')}</h2>
+    <div class="hours"><div class="hgrid" style="grid-template-columns:repeat(${n},${COLW}px)">${cols}<div style="grid-row:2;grid-column:1/-1">${curve}</div>${lower}</div></div>
+    <div class="legend"><span>${T('legRain')}</span><span>${T('legWind')}</span></div>
+  </section>`;
+
+  /* päivät */
+  const daysHtml = d.time.map((day,j) => {
+    const dt = dateOf(day);
+    const label = j===0 ? T('today') : j===1 ? T('tomorrow') : wday(dt, 'long');
+    const ps = d.precipitation_sum[j], pp = d.precipitation_probability_max[j];
+    return `<li class="day" data-day="${day}">
+      <button aria-expanded="false">
+        <span class="dname"><b>${label}</b><small>${dNum(dt)}</small><small class="dsun num" title="${T('sunTitle')}">${daySun(d, j)}</small></span>
+        ${icon(d.weather_code[j], 1)}
+        <span class="dtemp">${tSpan(d.temperature_2m_max[j])}<span class="lo">${tSpan(d.temperature_2m_min[j])}</span></span>
+        <span class="dprec">${ps>=0.1 ? mm(ps)+' mm' : '–'}<small>${pp!=null ? T('rainPct', pp) : ''}</small></span>
+        <span class="dwind">${arrow(d.wind_direction_10m_dominant[j])}${Math.round(d.wind_speed_10m_max[j])} m/s <small style="color:var(--muted)">(${Math.round(d.wind_gusts_10m_max[j])})</small></span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="detail" hidden></div>
+    </li>`;
+  }).join('');
+
+  const obsHtml = `<section class="panel obs" id="obs"><div class="obs-head"><h2>${T('obsTitle')}</h2></div><div class="skel"></div><div class="skel"></div></section>`;
+  const roadHtml = `<section class="panel obs road" id="road"><div class="obs-head"><h2>${T('rwTitle')}</h2><span class="src">Fintraffic</span></div><div class="skel"></div><div class="skel"></div></section>`;
+  $('#main').innerHTML = nowHtml + obsHtml + roadHtml + hoursHtml + `<section class="panel"><h2>${T('d10')}</h2><ul class="days">${daysHtml}</ul></section>`;
+
+  document.querySelectorAll('.day>button').forEach(btn => btn.onclick = () => {
+    const li = btn.parentElement, det = li.querySelector('.detail'), open = !li.classList.contains('open');
+    li.classList.toggle('open', open); btn.setAttribute('aria-expanded', open); det.hidden = !open;
+    if (open && !det.innerHTML) det.innerHTML = dayDetail(w, li.dataset.day);
+  });
+}
+
+function dayDetail(w, day){
+  const h = w.hourly, d = w.daily, j = d.time.indexOf(day);
+  const rows = h.time.map((t,i)=>i).filter(i => h.time[i].startsWith(day) && +hh(h.time[i]) % 3 === 0);
+  const len = d.daylight_duration ? d.daylight_duration[j]/60 : minsBetween(d.sunrise[j], d.sunset[j]);
+  return `<table><thead><tr><th>${T('thTime')}</th><th></th><th>${T('thTemp')}</th><th>${T('thFeels')}</th><th>${T('thRain')}</th><th>${T('thWind')}</th><th>${T('thHum')}</th></tr></thead><tbody>${
+    rows.map(i => `<tr>
+      <td>${hh(h.time[i])}</td>
+      <td>${icon(h.weather_code[i], h.is_day[i])}</td>
+      <td>${tSpan(h.temperature_2m[i])}</td>
+      <td>${tSpan(h.apparent_temperature[i])}</td>
+      <td style="color:var(--rain)">${mm(h.precipitation[i]) ? mm(h.precipitation[i])+' mm' : '–'}${h.precipitation_probability[i]>=10 ? ` <span style="color:var(--muted)">${h.precipitation_probability[i]} %</span>` : ''}</td>
+      <td>${arrow(h.wind_direction_10m[i])}${Math.round(h.wind_speed_10m[i])} (${Math.round(h.wind_gusts_10m[i])})</td>
+      <td>${Math.round(h.relative_humidity_2m[i])} %</td></tr>`).join('')
+  }</tbody></table>
+  <div class="sunline">${len < 1 ? T('polarShort') : len > 1439 ? T('midnightShort') : T('sunline', hm(d.sunrise[j]), hm(d.sunset[j]), dur(len))}${d.uv_index_max[j]!=null ? T('uv', dec((+d.uv_index_max[j]).toFixed(1))) : ''}</div>`;
+}
+
+/* ---------- Sovellus: asennus, offline-tila, service worker ---------- */
+let deferredInstall = null;
+const installBar = $('#installBar');
+const installDismissed = () => { try { return localStorage.getItem('avoinsaa.installDismissed') === '1'; } catch { return false; } };
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); deferredInstall = e;
+  if (!installDismissed()) installBar.hidden = false;
+});
+$('#installBtn').onclick = async () => {
+  if (!deferredInstall) return;
+  installBar.hidden = true;
+  deferredInstall.prompt();
+  try { await deferredInstall.userChoice; } catch {}
+  deferredInstall = null;
+};
+$('#installX').onclick = () => { installBar.hidden = true; try { localStorage.setItem('avoinsaa.installDismissed', '1'); } catch {} };
+window.addEventListener('appinstalled', () => { installBar.hidden = true; });
+const netState = () => { $('#offline').hidden = navigator.onLine !== false; };
+window.addEventListener('offline', netState);
+window.addEventListener('online', () => { netState(); load(); });
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
+  navigator.serviceWorker.register('sw.js').catch(err => console.warn('Service worker:', err));
+}
+
+applyStatic();
+netState();
+renderRecent();
+load();
+})();
+</script>
+</body>
+</html>
