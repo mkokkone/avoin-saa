@@ -3,13 +3,13 @@
    - Säädata (Open-Meteo, Ilmatieteen laitos, Digitraffic): verkko ensin, viimeisin vastaus varalla offline-tilaan.
    - Fontit: välimuisti ensin.
    Kasvata VERSION-numeroa, kun julkaiset uuden version sovelluksen tiedostoista. */
-const VERSION = 'avoinsaa-shell-v1';
+const VERSION = 'avoinsaa-shell-v2';
 const DATA = 'avoinsaa-data';
 const FONTS = 'avoinsaa-fonts';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest',
-  'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png',
-  'icons/apple-touch-icon.png', 'icons/favicon-32.png', 'icons/icon.svg'
+  'icon-192.png', 'icon-512.png', 'maskable-512.png',
+  'apple-touch-icon.png', 'favicon-32.png', 'icon.svg'
 ];
 const DATA_HOSTS = ['api.open-meteo.com', 'geocoding-api.open-meteo.com', 'opendata.fmi.fi', 'tie.digitraffic.fi'];
 const MAX_DATA_ENTRIES = 80;
