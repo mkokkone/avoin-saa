@@ -355,8 +355,6 @@ footer{padding-top:8px}
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-/* siirrä vanhat Hypersää-asetukset uusille avaimille */
-try { ['places','lang','installDismissed'].forEach(k => { const o = localStorage.getItem('hypersaa.' + k); if (o !== null && localStorage.getItem('avoinsaa.' + k) === null) localStorage.setItem('avoinsaa.' + k, o); }); } catch {}
 
 /* ---------- Kielet ---------- */
 const I18N = {
