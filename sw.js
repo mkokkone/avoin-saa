@@ -1,11 +1,13 @@
 /* Avoin sää – service worker
    - Sovelluksen omat tiedostot: verkko ensin, välimuisti varalla (päivitykset näkyvät heti, toimii offline).
    - Säädata (Open-Meteo, Ilmatieteen laitos, Digitraffic): verkko ensin, viimeisin vastaus varalla offline-tilaan.
+   - Tutkakuvat (aikaleimalliset, eivät muutu): välimuisti ensin. Taustakartta on sovelluksen sisällä.
    - Fontit: välimuisti ensin.
    Kasvata VERSION-numeroa, kun julkaiset uuden version sovelluksen tiedostoista. */
-const VERSION = 'avoinsaa-shell-v2';
+const VERSION = 'avoinsaa-shell-v4';
 const DATA = 'avoinsaa-data';
 const FONTS = 'avoinsaa-fonts';
+const RADAR = 'avoinsaa-radar';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest',
   'icon-192.png', 'icon-512.png', 'maskable-512.png',
@@ -21,7 +23,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k.startsWith('avoinsaa-shell-') && k !== VERSION).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => (k.startsWith('avoinsaa-shell-') && k !== VERSION) || k === 'avoinsaa-tiles').map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -32,6 +34,7 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
   if (url.origin === self.location.origin) { e.respondWith(shell(req)); return; }
   if (DATA_HOSTS.includes(url.hostname)) { e.respondWith(data(req, url)); return; }
+  if (url.hostname === 'openwms.fmi.fi' && url.searchParams.has('time')) { e.respondWith(cacheFirst(req, RADAR, 150)); return; }
   if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') { e.respondWith(fonts(req)); }
 });
 
@@ -86,4 +89,22 @@ async function fonts(req) {
   const res = await fetch(req);
   if (res.ok) cache.put(req, res.clone());
   return res;
+}
+
+async function cacheFirst(req, name, max) {
+  const cache = await caches.open(name);
+  const hit = await cache.match(req);
+  if (hit) return hit;
+  const res = await fetch(req);
+  if (res.ok) {
+    // virheviestejä (XML) ei tallenneta tutkakuviksi
+    const type = res.headers.get('content-type') || '';
+    if (name !== RADAR || /tiff/i.test(type)) { await cache.put(req, res.clone()); trimTo(cache, max); }
+  }
+  return res;
+}
+
+async function trimTo(cache, max) {
+  const keys = await cache.keys();
+  for (let i = 0; i < keys.length - max; i++) await cache.delete(keys[i]);
 }
