@@ -237,49 +237,11 @@ footer{padding-top:8px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);max-width:min(92vw,460px);padding:10px 16px;border-radius:12px;background:var(--ink);color:var(--bg);font-weight:600;font-size:14px;box-shadow:var(--shadow);z-index:50}
 /* välilehdet */
-.tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:4px;background:var(--surface);border-radius:14px;box-shadow:var(--shadow)}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;background:var(--surface);border-radius:14px;box-shadow:var(--shadow)}
 .tabs [role=tab]{display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;border:0;border-radius:10px;background:none;color:var(--muted);font:700 15px var(--font-ui);cursor:pointer}
 .tabs [role=tab]:hover{background:var(--hover);color:var(--ink)}
 .tabs [role=tab][aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
 .tabpanel{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;min-width:0}
-.tabs [role=tab]{position:relative;padding:0 6px}
-.tabs [role=tab] span:not(.tbadge){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tbadge{min-width:20px;height:20px;padding:0 6px;border-radius:999px;font:700 12px/20px var(--font-num);text-align:center;color:#111c26;flex:none}
-.tbadge.c-yellow{background:#f5cf2f}.tbadge.c-orange{background:#f08a24}.tbadge.c-red{background:#d8263b;color:#fff}
-@media (max-width:440px){.tabs [role=tab] svg{display:none}.tabs [role=tab]{font-size:13.5px;gap:5px}}
-/* varoitukset */
-.wsub{font:700 16px/1.25 var(--font-ui);margin:4px 0 0}
-.where{display:grid;gap:10px}
-.wok{display:flex;align-items:center;gap:8px;margin:0;padding:10px 12px;border-radius:10px;background:var(--ok-bg);color:var(--ok);font-weight:600}
-.wcard{--wc:#f5cf2f;border-radius:12px;padding:12px 14px 12px 16px;background:var(--hover);border-left:6px solid var(--wc);display:grid;gap:6px}
-.c-yellow{--wc:#f5cf2f}.c-orange{--wc:#f08a24}.c-red{--wc:#d8263b}
-.wcard h3{margin:0;font:700 17px/1.25 var(--font-ui)}
-.wtop{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
-.wpill{display:inline-block;padding:2px 9px;border-radius:999px;background:var(--wc);color:#111c26;font-size:12px;font-weight:700}
-.c-red .wpill{color:#fff}
-.wnow{font-size:12px;font-weight:700;color:var(--ink)}
-.wtime{font-size:14px;color:var(--muted)}
-.whead{margin:0;font-weight:600}
-.wdesc{margin:0;color:var(--ink);white-space:pre-line}
-.warea{margin:0;font-size:13px;color:var(--muted)}
-.wmap{position:relative;width:100%;height:420px;border-radius:12px;overflow:hidden;background:var(--hover)}
-.wmap canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-.wlegend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--muted)}
-.wlegend span{display:inline-flex;align-items:center;gap:6px}
-.wlegend i{width:14px;height:14px;border-radius:4px;background:var(--wc)}
-.wlegend b{color:var(--ink)}
-.wlist{display:grid}
-.wrow{border-top:1px solid var(--line)}
-.wrow summary{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 2px;cursor:pointer;list-style:none}
-.wrow summary::-webkit-details-marker{display:none}
-.wrow summary i{width:12px;height:12px;border-radius:50%;background:var(--wc)}
-.wr-main{display:grid;min-width:0}
-.wr-main b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.wr-main small{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.wr-time{font-size:13px;color:var(--muted);text-align:right}
-.wr-body{display:grid;gap:6px;padding:0 2px 12px 22px}
-.wr-body .wpill{justify-self:start}
-@media (max-width:560px){.wrow summary{grid-template-columns:12px minmax(0,1fr)}.wr-time{grid-column:2;text-align:left;font-size:12px}}
 /* sadetutka */
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
 .seg button{border:0;border-left:1px solid var(--line);background:var(--surface);color:var(--muted);padding:5px 11px;font-size:12px;font-weight:600;cursor:pointer}
@@ -397,22 +359,6 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 /* ---------- Kielet ---------- */
 const I18N = {
 fi: {
-  tabWarn:'Varoitukset',
-  warnTitle:'Säävaroitukset',
-  warnOthers:'Muut voimassa olevat varoitukset',
-  warnActive:'Voimassa nyt',
-  warnNoneHere:'Tällä paikalla ei ole voimassa olevia varoituksia.',
-  warnNone:'Suomessa ei ole voimassa olevia säävaroituksia.',
-  warnFail:'Varoituksia ei saatu haettua Ilmatieteen laitokselta.',
-  warnOnlyFi:'Ilmatieteen laitoksen varoitukset koskevat vain Suomea ja sen merialueita.',
-  warnMapAria:'Suomen kartta, jolla voimassa olevat varoitusalueet',
-  warnEnNote:'',
-  lvl_yellow:'Keltainen varoitus',
-  lvl_orange:'Oranssi varoitus',
-  lvl_red:'Punainen varoitus',
-  warnAttr:'Lähde: <a href="https://www.ilmatieteenlaitos.fi/varoitukset" target="_blank" rel="noopener">Ilmatieteen laitos, varoitukset</a>. Tarkista ajantasaiset varoitukset ja toimintaohjeet lähteestä.',
-  warnBadge: n => `${n} varoitusta tällä paikalla`,
-  showAll: n => `Näytä kaikki (${n})`,
   refresh:'Päivitä tiedot', refreshFail:'Tietoja ei saatu päivitettyä. Näytetään aiemmin haetut tiedot.',
   tabForecast:'Ennuste', tabObs:'Havainnot', tabsLabel:'Näkymä',
   radarTitle:'Sadetutka',
@@ -495,22 +441,6 @@ fi: {
   sunline: (r,s,l) => `Aurinko nousee ${r}, laskee ${s} · päivän pituus ${l}`, uv: v => ` · UV-indeksi enintään ${v}`
 },
 sv: {
-  tabWarn:'Varningar',
-  warnTitle:'Vädervarningar',
-  warnOthers:'Övriga gällande varningar',
-  warnActive:'Gäller nu',
-  warnNoneHere:'Inga gällande varningar för den här platsen.',
-  warnNone:'Inga gällande vädervarningar i Finland.',
-  warnFail:'Varningarna kunde inte hämtas från Meteorologiska institutet.',
-  warnOnlyFi:'Meteorologiska institutets varningar gäller bara Finland och dess havsområden.',
-  warnMapAria:'Karta över Finland med gällande varningsområden',
-  warnEnNote:'',
-  lvl_yellow:'Gul varning',
-  lvl_orange:'Orange varning',
-  lvl_red:'Röd varning',
-  warnAttr:'Källa: <a href="https://sv.ilmatieteenlaitos.fi/varningar" target="_blank" rel="noopener">Meteorologiska institutet, varningar</a>. Kontrollera aktuella varningar och anvisningar i källan.',
-  warnBadge: n => `${n} varningar för platsen`,
-  showAll: n => `Visa alla (${n})`,
   refresh:'Uppdatera', refreshFail:'Uppgifterna kunde inte uppdateras. Tidigare hämtade uppgifter visas.',
   tabForecast:'Prognos', tabObs:'Observationer', tabsLabel:'Vy',
   radarTitle:'Regnradar',
@@ -593,22 +523,6 @@ sv: {
   sunline: (r,s,l) => `Solen går upp ${r}, ner ${s} · dagens längd ${l}`, uv: v => ` · UV-index högst ${v}`
 },
 en: {
-  tabWarn:'Warnings',
-  warnTitle:'Weather warnings',
-  warnOthers:'Other active warnings',
-  warnActive:'Active now',
-  warnNoneHere:'No active warnings for this place.',
-  warnNone:'No active weather warnings in Finland.',
-  warnFail:'Could not load warnings from the Finnish Meteorological Institute.',
-  warnOnlyFi:'Warnings from the Finnish Meteorological Institute cover only Finland and its sea areas.',
-  warnMapAria:'Map of Finland showing active warning areas',
-  warnEnNote:'',
-  lvl_yellow:'Yellow warning',
-  lvl_orange:'Orange warning',
-  lvl_red:'Red warning',
-  warnAttr:'Source: <a href="https://en.ilmatieteenlaitos.fi/warnings" target="_blank" rel="noopener">Finnish Meteorological Institute, warnings</a>. Check the source for current warnings and safety advice.',
-  warnBadge: n => `${n} warnings for this place`,
-  showAll: n => `Show all (${n})`,
   refresh:'Refresh', refreshFail:'Could not refresh the data. Showing the previously loaded data.',
   tabForecast:'Forecast', tabObs:'Observations', tabsLabel:'View',
   radarTitle:'Rain radar',
@@ -691,22 +605,6 @@ en: {
   sunline: (r,s,l) => `Sunrise ${r}, sunset ${s} · day length ${l}`, uv: v => ` · max UV index ${v}`
 },
 nl: {
-  tabWarn:'Waarschuwingen',
-  warnTitle:'Weerwaarschuwingen',
-  warnOthers:'Overige geldende waarschuwingen',
-  warnActive:'Nu geldig',
-  warnNoneHere:'Geen geldende waarschuwingen voor deze plaats.',
-  warnNone:'Geen geldende weerwaarschuwingen in Finland.',
-  warnFail:'Waarschuwingen van het Fins Meteorologisch Instituut konden niet worden geladen.',
-  warnOnlyFi:'De waarschuwingen van het Fins Meteorologisch Instituut gelden alleen voor Finland en de Finse zeegebieden.',
-  warnMapAria:'Kaart van Finland met geldende waarschuwingsgebieden',
-  warnEnNote:'De waarschuwingsteksten komen van het Fins Meteorologisch Instituut en zijn in het Engels.',
-  lvl_yellow:'Gele waarschuwing',
-  lvl_orange:'Oranje waarschuwing',
-  lvl_red:'Rode waarschuwing',
-  warnAttr:'Bron: <a href="https://en.ilmatieteenlaitos.fi/warnings" target="_blank" rel="noopener">Fins Meteorologisch Instituut, waarschuwingen</a>. Controleer de bron voor actuele waarschuwingen en adviezen.',
-  warnBadge: n => `${n} waarschuwingen voor deze plaats`,
-  showAll: n => `Alles tonen (${n})`,
   refresh:'Vernieuwen', refreshFail:'De gegevens konden niet worden vernieuwd. Eerder geladen gegevens worden getoond.',
   tabForecast:'Verwachting', tabObs:'Waarnemingen', tabsLabel:'Weergave',
   radarTitle:'Neerslagradar',
@@ -953,9 +851,6 @@ document.querySelectorAll('#langSel button').forEach(b => b.onclick = () => {
     render(last.w);
     if (last.ob) safeRender(renderObs, last.ob, last.place);
     if (last.road) safeRender(renderRoad, last.road, last.place);
-    const L = last, wantFeed = WARN_FEED[lang];
-    if (L.warn && L.warn.o && WARN_FEED[L.warn.o.lang] === wantFeed) safeRender(renderWarnings, L.warn, L.place);
-    else fetchWarnings(lang).then(o => ({o}), e => ({e})).then(wn => { if (last === L && $('#warn')){ L.warn = wn; safeRender(renderWarnings, wn, L.place); } });
   } else load();
 });
 
@@ -972,7 +867,6 @@ async function load(opts = {}){
   if (!silent) last = null;
   const obsP = fetchObs(place).then(o => ({o}), e => ({e}));
   const roadP = fetchRoad(place).then(o => ({o}), e => ({e}));
-  const warnP = fetchWarnings(lang).then(o => ({o}), e => ({e}));
   let w;
   try{
     const r = await fetch(url);
@@ -988,13 +882,12 @@ async function load(opts = {}){
   if (silent){
     // odotetaan havainnot hetki, jotta näkymä päivittyy kerralla; hitaat jäävät edellisiin arvoihin
     const later = (pr, ms, old) => Promise.race([pr, new Promise(res => setTimeout(() => res(old), ms))]);
-    const [ob, rd, wn] = await Promise.all([later(obsP, 8000, prev.ob), later(roadP, 8000, prev.road), later(warnP, 8000, prev.warn)]);
+    const [ob, rd] = await Promise.all([later(obsP, 8000, prev.ob), later(roadP, 8000, prev.road)]);
     if (tok !== loadSeq) return;
     const y = window.scrollY, open = [...document.querySelectorAll('.day.open')].map(li => li.dataset.day);
     radarState.complete = false;          // tutka hakee uusimman kuvan, vanhat tulevat välimuistista
     render(w);
-    last = {w, ob, road: rd, warn: wn, place};
-    if (wn) safeRender(renderWarnings, wn, place);
+    last = {w, ob, road: rd, place};
     if (ob) safeRender(renderObs, ob, place);
     if (rd) safeRender(renderRoad, rd, place);
     open.forEach(d => document.querySelector(`.day[data-day="${d}"]>button`)?.click());
@@ -1006,7 +899,6 @@ async function load(opts = {}){
   last = {w, ob:null, place};
   lastLoad = Date.now(); setRefreshing(false);
   roadP.then(rd => { if (tok === loadSeq && last && $('#road')){ last.road = rd; safeRender(renderRoad, rd, place); } });
-  warnP.then(wn => { if (tok === loadSeq && last && $('#warn')){ last.warn = wn; safeRender(renderWarnings, wn, place); } });
   const ob = await obsP;
   if (tok === loadSeq && $('#obs')){ last.ob = ob; safeRender(renderObs, ob, place); }
 }
@@ -1564,16 +1456,16 @@ function drawBase(cv, v){
   ctx.beginPath(); B.land.filter(visible).forEach(r => path(r, true)); ctx.fillStyle = col('--map-land'); ctx.fill('nonzero');
   ctx.beginPath(); B.lakes.filter(visible).forEach(r => path(r, true)); ctx.fillStyle = col('--map-sea'); ctx.fill('nonzero');
   ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-  ctx.beginPath(); B.roads.filter(visible).forEach(r => path(r, false)); ctx.strokeStyle = col('--map-road'); ctx.lineWidth = (v.zoom || radarState.zoom) === 'near' ? 1.6 : 1; ctx.stroke();
+  ctx.beginPath(); B.roads.filter(visible).forEach(r => path(r, false)); ctx.strokeStyle = col('--map-road'); ctx.lineWidth = radarState.zoom === 'near' ? 1.6 : 1; ctx.stroke();
   ctx.beginPath(); B.borders.filter(visible).forEach(r => path(r, false)); ctx.strokeStyle = col('--map-border'); ctx.lineWidth = 1.2; ctx.setLineDash([5, 3]); ctx.stroke(); ctx.setLineDash([]);
   // paikannimet: isommat ensin, ei päällekkäisyyksiä
-  const zl = v.zoom || radarState.zoom, maxRank = zl === 'near' ? 10 : zl === 'wide' ? 7 : 5, boxes = [];
+  const maxRank = radarState.zoom === 'near' ? 10 : 7, boxes = [];
   ctx.font = '600 11px Figtree, system-ui, sans-serif'; ctx.textBaseline = 'middle';
   for (const pl of B.places){
     if (pl.r > maxRank) continue;
     const x = X(pl.x), y = Y(pl.y);
     if (x < 4 || y < 8 || x > v.cssW - 4 || y > v.cssH - 8) continue;
-    if (Math.hypot(x - (v.markX ?? v.cssW / 2), y - (v.markY ?? v.cssH / 2)) < 16) continue;          // ei valitun paikan merkin päälle
+    if (Math.hypot(x - v.cssW / 2, y - v.cssH / 2) < 16) continue;          // ei valitun paikan merkin päälle
     const w = ctx.measureText(pl.n).width, bx = x + 6, box = [x - 4, y - 8, bx + w + 2, y + 8];
     if (box[2] > v.cssW - 2) continue;
     if (boxes.some(b => !(box[2] < b[0] || box[0] > b[2] || box[3] < b[1] || box[1] > b[3]))) continue;
@@ -1739,151 +1631,11 @@ function radarStop(){
 }
 
 let radarResizeT = null, radarLastW = 0;
-window.addEventListener('resize', () => { clearTimeout(drawWarnMap._t); drawWarnMap._t = setTimeout(() => { if (last && last.warn && last.warn.o) drawWarnMap(last.warn.o, last.place); }, 250); });
 try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (radarState.view && $('#rbase')){ drawBase($('#rbase'), radarState.view); showFrame(radarState.idx); } }); } catch {}
 window.addEventListener('resize', () => {
   clearTimeout(radarResizeT);
   radarResizeT = setTimeout(() => { const m = $('#rmap'); if (m && m.clientWidth > 0 && Math.abs(m.clientWidth - radarLastW) > 40){ radarLastW = m.clientWidth; startRadar(current); } }, 300);
 });
-
-/* ---------- Varoitukset (Ilmatieteen laitos, CAP 1.2 Atom-syöte) ----------
-   Syöte sisältää voimassa olevat varoitukset kokonaisina CAP-sanomina, myös alueiden rajat. */
-const WARN_FEED = {fi: 'fi-FI', sv: 'sv-FI', en: 'en-GB', nl: 'en-GB'};
-const WARN_COLORS = {yellow: '#f5cf2f', orange: '#f08a24', red: '#d8263b'};
-const WARN_RANK = {yellow: 1, orange: 2, red: 3};
-const SEV_COLOR = {Moderate: 'yellow', Severe: 'orange', Extreme: 'red', Minor: 'yellow'};
-async function fetchWarnings(lg){
-  const loc = WARN_FEED[lg] || 'fi-FI';
-  const url = `https://alerts.fmi.fi/cap/feed/atom_${loc}.xml`;
-  const text = await getText(url);
-  const xml = new DOMParser().parseFromString(text, 'application/xml');
-  if (xml.getElementsByTagName('parsererror').length) throw new Diag('parse', 'XML: ' + text.slice(0, 200).replace(/\s+/g, ' '), url);
-  const tag = (el, n) => el.getElementsByTagNameNS('*', n);
-  const txt = (el, n) => (tag(el, n)[0]?.textContent || '').trim();
-  const kids = (el, n) => [...el.children].filter(c => c.localName === n);
-  const now = Date.now(), list = [], superseded = new Set();
-  for (const al of tag(xml, 'alert')){
-    const msgType = txt(al, 'msgType'), id = txt(al, 'identifier');
-    (txt(al, 'references') || '').split(/\s+/).filter(Boolean).forEach(r => superseded.add(r.split(',')[1]));
-    if (msgType === 'Cancel' || (txt(al, 'status') && txt(al, 'status') !== 'Actual')) { superseded.add(id); continue; }
-    const infos = kids(al, 'info');
-    const info = infos.find(i => txt(i, 'language').toLowerCase().startsWith(loc.slice(0, 2))) || infos[0];
-    if (!info) continue;
-    const params = {};
-    kids(info, 'parameter').forEach(p => { params[txt(p, 'valueName')] = txt(p, 'value'); });
-    const color = (params.color || SEV_COLOR[txt(info, 'severity')] || 'yellow').toLowerCase();
-    const onset = new Date(txt(info, 'onset') || txt(info, 'effective') || txt(al, 'sent'));
-    const expires = new Date(txt(info, 'expires'));
-    if (!isNaN(expires) && expires < now) continue;
-    const areas = kids(info, 'area').map(a => ({
-      desc: txt(a, 'areaDesc'),
-      polys: kids(a, 'polygon').map(p => p.textContent.trim().split(/\s+/).map(pt => pt.split(',').map(Number)).filter(pt => pt.length === 2 && pt.every(Number.isFinite)))
-    }));
-    list.push({id, sent: new Date(txt(al, 'sent')), color: WARN_RANK[color] ? color : 'yellow',
-      event: txt(info, 'event'), code: (tag(info, 'eventCode')[0] ? txt(tag(info, 'eventCode')[0], 'value') : ''),
-      headline: txt(info, 'headline'), desc: txt(info, 'description'), onset, expires, areas, web: txt(info, 'web')});
-  }
-  const alerts = list.filter(a => !superseded.has(a.id))
-    .sort((a, b) => WARN_RANK[b.color] - WARN_RANK[a.color] || a.onset - b.onset);
-  const upd = new Date((tag(xml, 'updated')[0]?.textContent || '').trim());
-  return {alerts, updated: isNaN(upd) ? null : upd, lang: lg, url};
-}
-// piste polygonissa; CAP-polygonit ovat muotoa "lat,lon"
-function inPoly(lat, lon, poly){
-  let inside = false;
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++){
-    const [yi, xi] = poly[i], [yj, xj] = poly[j];
-    if ((yi > lat) !== (yj > lat) && lon < (xj - xi) * (lat - yi) / (yj - yi) + xi) inside = !inside;
-  }
-  return inside;
-}
-const warnHits = (a, p) => a.areas.some(ar => ar.polys.some(pg => inPoly(p.lat, p.lon, pg)));
-function fmtWhen(d){
-  if (!(d instanceof Date) || isNaN(d)) return '–';
-  const loc = T('locale');
-  const wd = d.toLocaleDateString(loc, {weekday: 'short', timeZone: 'Europe/Helsinki'});
-  const day = (lang === 'fi' || lang === 'sv')
-    ? d.toLocaleDateString('fi-FI', {day: 'numeric', month: 'numeric', timeZone: 'Europe/Helsinki'}).replace(/\.?$/, '.')
-    : d.toLocaleDateString(loc, {day: 'numeric', month: 'short', timeZone: 'Europe/Helsinki'});
-  return `${wd} ${day} ${clock(d)}`;
-}
-function fmtRange(a, b){
-  const sameDay = a instanceof Date && b instanceof Date && a.toLocaleDateString('fi-FI', {timeZone: 'Europe/Helsinki'}) === b.toLocaleDateString('fi-FI', {timeZone: 'Europe/Helsinki'});
-  return sameDay ? `${fmtWhen(a)}–${clock(b)}` : `${fmtWhen(a)} – ${fmtWhen(b)}`;
-}
-function warnBadge(wd, place){
-  const b = $('#warnBadge'); if (!b) return;
-  const here = wd && wd.alerts ? wd.alerts.filter(a => warnHits(a, place)) : [];
-  if (!here.length){ b.hidden = true; return; }
-  const top = here[0].color;
-  b.hidden = false; b.textContent = String(here.length); b.className = 'tbadge c-' + top;
-  b.setAttribute('aria-label', T('warnBadge', here.length));
-}
-const ICON_TAB_WARN = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4.2M12 17.2v.1"/></svg>';
-
-function renderWarnings({o, e}, place){
-  const box = $('#warn'); if (!box) return;
-  const head = `<div class="obs-head"><h2>${T('warnTitle')}</h2><span class="src">${o && o.updated ? T('at', clock(o.updated)) : ''}</span></div>`;
-  if (e){ box.innerHTML = head + `<p class="obs-note">${T('warnFail')}</p>` + diagHtml(e); warnBadge(null, place); return; }
-  const fi = place.lat > 59 && place.lat < 70.5 && place.lon > 19 && place.lon < 32;
-  const here = o.alerts.filter(a => warnHits(a, place)), others = o.alerts.filter(a => !here.includes(a));
-  const now = Date.now();
-  const card = a => `<article class="wcard c-${a.color}">
-      <div class="wtop"><span class="wpill">${T('lvl_' + a.color)}</span>${a.onset <= now ? `<span class="wnow">${T('warnActive')}</span>` : ''}<span class="wtime num">${fmtRange(a.onset, a.expires)}</span></div>
-      <h3>${esc(a.event || a.headline)}</h3>
-      ${a.headline && a.headline !== a.event ? `<p class="whead">${esc(a.headline)}</p>` : ''}
-      ${a.desc ? `<p class="wdesc">${esc(a.desc)}</p>` : ''}
-    </article>`;
-  const areaText = a => { const n = a.areas.map(x => x.desc).filter(Boolean); return n.length > 2 ? `${n.slice(0, 2).join(', ')} +${n.length - 2}` : n.join(', '); };
-  const row = (a, i) => `<details class="wrow c-${a.color}"${i >= 8 ? ' data-more hidden' : ''}>
-      <summary><i aria-hidden="true"></i><span class="wr-main"><b>${esc(a.event || a.headline)}</b><small>${esc(areaText(a))}</small></span><span class="wr-time num">${fmtRange(a.onset, a.expires)}</span></summary>
-      <div class="wr-body"><span class="wpill">${T('lvl_' + a.color)}</span>${a.headline ? `<p class="whead">${esc(a.headline)}</p>` : ''}${a.desc ? `<p class="wdesc">${esc(a.desc)}</p>` : ''}${a.areas.length > 2 ? `<p class="warea">${esc(a.areas.map(x => x.desc).join(', '))}</p>` : ''}</div>
-    </details>`;
-  const counts = ['red', 'orange', 'yellow'].map(c => [c, o.alerts.filter(a => a.color === c).length]).filter(([, n]) => n);
-  box.innerHTML = head
-    + `<div class="where"><h3 class="wsub">${esc(pname(place))}</h3>`
-    + (!fi ? `<p class="obs-note">${T('warnOnlyFi')}</p>`
-       : here.length ? here.map(card).join('')
-       : `<p class="wok"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.2 4.2L19 7"/></svg>${T('warnNoneHere')}</p>`)
-    + `</div>`
-    + `<div class="wmap" id="wmap"><canvas id="wcanvas" role="img" aria-label="${T('warnMapAria')}"></canvas></div>`
-    + (counts.length ? `<div class="wlegend">${counts.map(([c, n]) => `<span class="c-${c}"><i></i>${T('lvl_' + c)} <b class="num">${n}</b></span>`).join('')}</div>` : `<p class="obs-note">${T('warnNone')}</p>`)
-    + (others.length ? `<h3 class="wsub">${T('warnOthers')}</h3><div class="wlist">${others.map(row).join('')}</div>`
-        + (others.length > 8 ? `<button type="button" class="btn btn-s" id="wmore">${T('showAll', others.length)}</button>` : '') : '')
-    + (lang === 'nl' ? `<p class="obs-note">${T('warnEnNote')}</p>` : '')
-    + `<div class="rattr">${T('warnAttr')}</div>`;
-  const more = $('#wmore');
-  if (more) more.onclick = () => { box.querySelectorAll('[data-more]').forEach(x => { x.hidden = false; }); more.remove(); };
-  warnBadge(o, place);
-  drawWarnMap(o, place);
-}
-function drawWarnMap(o, place){
-  const wrap = $('#wmap'), cv = $('#wcanvas');
-  if (!wrap || !cv || !o) return;
-  const W = Math.round(wrap.clientWidth); if (!W) return;              // piilotettu välilehti: piirretään avattaessa
-  const H = Math.min(Math.round(W * 1.3), 560); wrap.style.height = H + 'px';
-  const bx0 = mx(19.0), bx1 = mx(31.9), by0 = my(59.4), by1 = my(70.25);
-  const mpp = Math.max((bx1 - bx0) / W, (by1 - by0) / H), cx = (bx0 + bx1) / 2, cy = (by0 + by1) / 2;
-  const v = {x0: cx - W * mpp / 2, x1: cx + W * mpp / 2, y0: cy - H * mpp / 2, y1: cy + H * mpp / 2, cssW: W, cssH: H, mpp, zoom: 'country', markX: (mx(place.lon) - (cx - W * mpp / 2)) / mpp, markY: ((cy + H * mpp / 2) - my(place.lat)) / mpp};
-  drawBase(cv, v);
-  const ctx = cv.getContext('2d');
-  const X = lon => (mx(lon) - v.x0) / mpp, Y = lat => (v.y1 - my(lat)) / mpp;
-  for (const c of ['yellow', 'orange', 'red']){
-    ctx.beginPath();
-    o.alerts.filter(a => a.color === c).forEach(a => a.areas.forEach(ar => ar.polys.forEach(pg => {
-      pg.forEach(([la, lo], i) => i ? ctx.lineTo(X(lo), Y(la)) : ctx.moveTo(X(lo), Y(la))); ctx.closePath();
-    })));
-    ctx.globalAlpha = .5; ctx.fillStyle = WARN_COLORS[c]; ctx.fill('nonzero');
-    ctx.globalAlpha = .95; ctx.lineWidth = 1.2; ctx.strokeStyle = WARN_COLORS[c]; ctx.stroke();
-    ctx.globalAlpha = 1;
-  }
-  const x = v.markX, y = v.markY;
-  if (x > 0 && y > 0 && x < W && y < H){
-    ctx.beginPath(); ctx.arc(x, y, 7, 0, 2 * Math.PI); ctx.fillStyle = '#111c26'; ctx.fill();
-    ctx.lineWidth = 3; ctx.strokeStyle = '#ffffff'; ctx.stroke();
-    ctx.beginPath(); ctx.arc(x, y, 2.5, 0, 2 * Math.PI); ctx.fillStyle = '#ffffff'; ctx.fill();
-  }
-}
 
 function showError(msg, retry){
   $('#main').innerHTML = `<section class="panel state"><p>${esc(msg)}</p>${retry?`<button class="btn" id="retry">${T('retry')}</button>`:''}</section>`;
@@ -1961,8 +1713,7 @@ let activeTab = (() => {
   const h = (location.hash || '').slice(1).toLowerCase();
   if (['havainnot', 'obs', 'observations'].includes(h)) return 'obs';
   if (['ennuste', 'fc', 'forecast'].includes(h)) return 'fc';
-  if (['varoitukset', 'warn', 'warnings', 'varningar'].includes(h)) return 'warn';
-  try { const t = localStorage.getItem('avoinsaa.tab'); if (t === 'fc' || t === 'obs' || t === 'warn') return t; } catch {}
+  try { const t = localStorage.getItem('avoinsaa.tab'); if (t === 'fc' || t === 'obs') return t; } catch {}
   return 'fc';
 })();
 function selectTab(id, focus){
@@ -1973,9 +1724,8 @@ function selectTab(id, focus){
     b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1;
     if (on && focus) b.focus();
   });
-  ['fc', 'obs', 'warn'].forEach(t => { const el = $('#tab-' + t); if (el) el.hidden = t !== id; });
+  ['fc', 'obs'].forEach(t => { const el = $('#tab-' + t); if (el) el.hidden = t !== id; });
   if (id !== 'obs') radarStop();
-  if (id === 'warn' && last && last.warn && last.warn.o) drawWarnMap(last.warn.o, last.place);
 }
 function wireTabs(){
   const tabs = [...document.querySelectorAll('.tabs [role=tab]')];
@@ -2078,12 +1828,11 @@ function render(w){
 
   const obsHtml = `<section class="panel obs" id="obs"><div class="obs-head"><h2>${T('obsTitle')}</h2></div><div class="skel"></div><div class="skel"></div></section>`;
   const roadHtml = `<section class="panel obs road" id="road"><div class="obs-head"><h2>${T('rwTitle')}</h2><span class="src">Fintraffic</span></div><div class="skel"></div><div class="skel"></div></section>`;
-  const tabBtn = (id, icon, label, extra = '') => `<button type="button" role="tab" id="tabbtn-${id}" aria-controls="tab-${id}" aria-selected="${activeTab === id}" tabindex="${activeTab === id ? 0 : -1}" data-tab="${id}">${icon}<span>${label}</span>${extra}</button>`;
+  const tabBtn = (id, icon, label) => `<button type="button" role="tab" id="tabbtn-${id}" aria-controls="tab-${id}" aria-selected="${activeTab === id}" tabindex="${activeTab === id ? 0 : -1}" data-tab="${id}">${icon}<span>${label}</span></button>`;
   $('#main').innerHTML = nowHtml
-    + `<div class="tabs" role="tablist" aria-label="${T('tabsLabel')}">${tabBtn('fc', ICON_TAB_FC, T('tabForecast'))}${tabBtn('obs', ICON_TAB_OBS, T('tabObs'))}${tabBtn('warn', ICON_TAB_WARN, T('tabWarn'), '<span class="tbadge" id="warnBadge" hidden></span>')}</div>`
+    + `<div class="tabs" role="tablist" aria-label="${T('tabsLabel')}">${tabBtn('fc', ICON_TAB_FC, T('tabForecast'))}${tabBtn('obs', ICON_TAB_OBS, T('tabObs'))}</div>`
     + `<div class="tabpanel" id="tab-fc" role="tabpanel" aria-labelledby="tabbtn-fc"${activeTab === 'fc' ? '' : ' hidden'}>${hoursHtml}<section class="panel"><h2>${T('d10')}</h2><ul class="days">${daysHtml}</ul></section></div>`
-    + `<div class="tabpanel" id="tab-obs" role="tabpanel" aria-labelledby="tabbtn-obs"${activeTab === 'obs' ? '' : ' hidden'}>${obsHtml}${radarHtml()}${roadHtml}</div>`
-    + `<div class="tabpanel" id="tab-warn" role="tabpanel" aria-labelledby="tabbtn-warn"${activeTab === 'warn' ? '' : ' hidden'}><section class="panel obs warn" id="warn"><div class="obs-head"><h2>${T('warnTitle')}</h2></div><div class="skel"></div><div class="skel"></div></section></div>`;
+    + `<div class="tabpanel" id="tab-obs" role="tabpanel" aria-labelledby="tabbtn-obs"${activeTab === 'obs' ? '' : ' hidden'}>${obsHtml}${radarHtml()}${roadHtml}</div>`;
   wireTabs();
   const rb = $('#refreshBtn'); if (rb) rb.onclick = () => load({silent: true});
 

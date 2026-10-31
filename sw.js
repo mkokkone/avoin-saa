@@ -1,10 +1,10 @@
 /* Avoin sää – service worker
    - Sovelluksen omat tiedostot: verkko ensin, välimuisti varalla (päivitykset näkyvät heti, toimii offline).
-   - Säädata (Open-Meteo, Ilmatieteen laitos ja sen varoitukset, Digitraffic): verkko ensin, viimeisin vastaus varalla offline-tilaan.
+   - Säädata (Open-Meteo, Ilmatieteen laitos, Digitraffic): verkko ensin, viimeisin vastaus varalla offline-tilaan.
    - Tutkakuvat (aikaleimalliset, eivät muutu): välimuisti ensin. Taustakartta on sovelluksen sisällä.
    - Fontit: välimuisti ensin.
    Kasvata VERSION-numeroa, kun julkaiset uuden version sovelluksen tiedostoista. */
-const VERSION = 'avoinsaa-shell-v5';
+const VERSION = 'avoinsaa-shell-v4';
 const DATA = 'avoinsaa-data';
 const FONTS = 'avoinsaa-fonts';
 const RADAR = 'avoinsaa-radar';
@@ -13,7 +13,7 @@ const SHELL = [
   'icon-192.png', 'icon-512.png', 'maskable-512.png',
   'apple-touch-icon.png', 'favicon-32.png', 'icon.svg'
 ];
-const DATA_HOSTS = ['api.open-meteo.com', 'geocoding-api.open-meteo.com', 'opendata.fmi.fi', 'tie.digitraffic.fi', 'alerts.fmi.fi'];
+const DATA_HOSTS = ['api.open-meteo.com', 'geocoding-api.open-meteo.com', 'opendata.fmi.fi', 'tie.digitraffic.fi'];
 const MAX_DATA_ENTRIES = 80;
 
 self.addEventListener('install', e => {
