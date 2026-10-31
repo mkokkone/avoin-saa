@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Avoin sää",
   "short_name": "Avoin sää",
-  "description": "Mainokseton sääennuste, säähavainnot ja tiesää avoimesta datasta.",
+  "description": "Mainokseton sääennuste, säähavainnot, sadetutka, varoitukset ja tiesää avoimesta datasta.",
   "lang": "fi",
   "dir": "ltr",
   "start_url": "./",
